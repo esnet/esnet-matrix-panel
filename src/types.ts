@@ -1,7 +1,9 @@
-type SeriesSize = 'sm' | 'md' | 'lg';
-
-export interface SimpleOptions {
-  text: string;
-  showSeriesCount: boolean;
-  seriesCountSize: SeriesSize;
+export interface MatrixOptions {
+  sourceField: string;
+  targetField: string;
+  valueField: string;
+  cellSize: number;
+  cellPadding: number;
+  txtLength: number;
+  txtSize: number;
 }

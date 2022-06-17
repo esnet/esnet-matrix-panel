@@ -1,7 +1,7 @@
 {
-  "name": "simple-panel",
-  "version": "1.0.0",
-  "description": "Grafana Panel Plugin Template",
+  "name": "esnet-matrix-panel",
+  "version": "0.0.1",
+  "description": "ESNET Matrix Panel",
   "scripts": {
     "build": "grafana-toolkit plugin:build",
     "test": "grafana-toolkit plugin:test",
@@ -10,13 +10,15 @@
     "sign": "grafana-toolkit plugin:sign",
     "start": "yarn watch"
   },
-  "author": "Grafana Labs",
+  "author": "Brayton Thompson",
   "license": "Apache-2.0",
   "devDependencies": {
     "@grafana/data": "latest",
     "@grafana/toolkit": "latest",
     "@grafana/ui": "latest",
-    "emotion": "10.0.27"
+    "emotion": "10.0.27",
+    "d3": "^7.4.3",
+    "d3-scale": "^4.0.2"
   },
   "engines": {
     "node": ">=14"

@@ -1,22 +1,22 @@
 {
   "$schema": "https://raw.githubusercontent.com/grafana/grafana/master/docs/sources/developers/plugins/plugin.schema.json",
   "type": "panel",
-  "name": "Grafana Panel Plugin Template",
-  "id": "myorgid-simple-panel",
+  "name": "ESNET Matrix Panel",
+  "id": "esnet-matrix-panel",
 
   "info": {
-    "description": "Grafana Panel Plugin Template",
+    "description": "Generic Matrix Panel",
     "author": {
-      "name": "Your Name"
+      "name": "Brayton Thompson"
     },
-    "keywords": ["panel", "template"],
+    "keywords": ["panel", "matrix", "esnet"],
     "logos": {
       "small": "img/logo.svg",
       "large": "img/logo.svg"
     },
     "links": [
-      {"name": "Website", "url": "https://github.com/grafana/grafana-starter-panel"},
-      {"name": "License", "url": "https://github.com/grafana/grafana-starter-panel/blob/master/LICENSE"}
+      {"name": "Website", "url": "https://github.com/thompsbp-esnet/grafana-esnet-matrix-panel"},
+      {"name": "License", "url": "https://github.com/thompsbp-esnet/grafana-esnet-matrix-panel/blob/master/LICENSE"}
     ],
     "screenshots": [],
     "version": "%VERSION%",
