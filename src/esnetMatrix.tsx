@@ -7,7 +7,7 @@ import * as matrix from './matrix.js';
 
 interface Props extends PanelProps<MatrixOptions> {}
 
-export const esnetMatrix: React.FC<Props> = ({ options, data, width, height, id }) => {
+export const EsnetMatrix: React.FC<Props> = ({ options, data, width, height, id }) => {
   const ref = matrix.matrix(
     data,
     options.sourceField,
