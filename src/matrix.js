@@ -26,14 +26,20 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
   }
 
   // get color mapping from grafana
-  // const valueField = val
-  //   ? data.series.map((series) => series.fields.find((field) => field.name === val))
-  //   : data.series.map((series) => series.fields.find((field) => field.type === 'number'));
+  const valueField = val
+    ? data.series.map((series) => series.fields.find((field) => field.name === val))
+    : data.series.map((series) => series.fields.find((field) => field.type === 'number'));
 
-    const valueField = data.series.map((series) => series.fields.find((field) => field.type === 'number'));
+  // const valueField = data.series.map((series) => series.fields.find((field) => field.type === 'number'));
 
   var colorMap = (v) => {
-    valueField[0].display(v).color;
+    if (v >= 0) {
+      return valueField[0].display(v).color;
+    } else if (v == -1) {
+      return '#F0F0F0';
+    } else {
+      return '#FF981C';
+    }
   };
 
   const frame = data.series[0];
@@ -44,7 +50,7 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
   }
 
   const view = new DataFrameView(frame);
-  const [matrix, nameRevIdx] = prepData(view, src, target, val);
+  const [rowNames, colNames, matrix] = prepData(view, src, target, val);
   // this is making a questionable assumption that the quant data we care about
   // is in the 3rd column
   const fieldDisplay = view.getFieldDisplayProcessor(2);
@@ -53,10 +59,11 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
   if (matrix === null) return;
 
   //make an array of the names of the nodes
-  const names = Array.from(nameRevIdx.values());
+  // const names = Array.from(nameRevIdx.values());
 
   //find the length of the longest name. this will inform the margin and name truncation
-  var longest = names.reduce((a, b) => {
+  var allNames = rowNames.concat(colNames);
+  var longest = allNames.reduce((a, b) => {
     return a.length > b.length ? a : b;
   });
 
@@ -67,7 +74,7 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
   txtLength = longest.length < txtLength ? longest.length : txtLength;
 
   //the user settable value cellsize controls the size of the svg.
-  var size = names.length * cellSize;
+  // var size = names.length * cellSize;
 
   //calculate the margins needed
   var txtOffset = txtLength * 5 + 25;
@@ -75,13 +82,8 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
   // set the dimensions and margins of the graph
   // the top has a drop shadow and needs an extra 10 pixels to display properly
   var margin = { top: txtOffset + 10, right: 0, bottom: 0, left: txtOffset },
-    width = size,
-    height = size;
-
-  // var colors = {
-  //   "high": "#009e74",
-  //   "low": "#f0e442"
-  // }
+    width = colNames.length * cellSize,
+    height = rowNames.length * cellSize;
 
   //we'll use this div as our tooltip.
   //the div will be invisible except when in use
@@ -110,14 +112,15 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
     .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
   // Build X scales and axis:
-  var x = d3.scaleBand().range([0, width]).domain(names).padding(cellPadding);
+  var x = d3.scaleBand().range([0, width]).domain(colNames).padding(cellPadding);
   svg.append('g').call(d3.axisTop(x)).select('.domain').remove();
 
   //rotate the labels on the X axis
-  svg.selectAll('text').attr('style', 'text-anchor:end').attr('transform', 'translate(-11.5,-12)rotate(90)');
+  // svg.selectAll('text').attr('style', 'text-anchor:end').attr('transform', 'translate(-11.5,-12)rotate(90)');
+  svg.selectAll('text').attr('style', 'text-anchor:start').attr('transform', 'translate(12,-12)rotate(-90)');
 
-  // Build X scales and axis:
-  var y = d3.scaleBand().range([height, 0]).domain(names.slice().reverse()).padding(cellPadding);
+  // Build Y scales and axis:
+  var y = d3.scaleBand().range([height, 0]).domain(rowNames.slice().reverse()).padding(cellPadding);
   svg.append('g').call(d3.axisLeft(y)).select('.domain').remove();
 
   //the scale bands have created the labels on the axis now we need to make sure the styles are set and add the hover events
@@ -148,11 +151,6 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
       div.style('opacity', 0).style('left', '0px').style('top', '0px');
     });
 
-  // Build color scale
-  // var myColor = d3.scaleLinear()
-  //   .range(["#00000000",colors.low, colors.high])
-  //   .domain([-1,0,100000000000000])
-
   //build the matrix
 
   //use d3's local stuff to record where we are in the outer loop
@@ -176,26 +174,26 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
     .enter()
     .append('rect')
     .attr('x', function (d, i, j) {
-      return x(names[i]);
+      return x(colNames[i]);
     })
     .attr('y', function (d, i, j) {
       var outer_counter = outer.get(this);
-      return y(names[outer_counter]);
+      return y(rowNames[outer_counter]);
     })
     .attr('width', x.bandwidth())
     .attr('height', y.bandwidth())
     //this places a 'data' attribute into the HTML to make debugging easier. Allows you to see the inner/outer loop counts and the datum used
     .attr('data', function (d, i) {
       var outer_counter = outer.get(this);
-      var str = '' + outer_counter + ':' + i + ' ' + names[outer_counter] + ':' + names[i] + ' ' + d;
+      var str = '' + outer_counter + ':' + i + ' ' + rowNames[outer_counter] + ':' + colNames[i] + ' ' + d;
       return str;
     })
     .attr('fill', function (d) {
-      return valueField[0].display(d).color;
+      return colorMap(d);
     })
     //hide the spot where a node intersects with itself
     .style('visibility', function (d, i) {
-      if (i == outer.get(this)) {
+      if (colNames[i] == rowNames[outer.get(this)]) {
         return 'hidden';
       }
       return 'visible';
@@ -245,68 +243,50 @@ function truncateLabel(text, width) {
  * @param {string} src The data series that will act as the source
  * @param {string} target The data series that will act as * the target
  * @param {string} val The data series that will act as the value
- * @return {[matrix, namesToIndex]}
+ * @return {[rowNames, colNames, dataMatrix]}
  */
 function prepData(data, src, target, val) {
-  // create array of names
   let sourceKey = src;
   let targetKey = target;
   let valKey = val;
-  const names = {};
-
-  let err = 0;
-  data.forEach((row) => {
-    const rowKey = Object.keys(row);
-    if (sourceKey === undefined) {
-      sourceKey = rowKey[0];
-    }
-    if (targetKey === undefined) {
-      targetKey = rowKey[1];
-    }
-    if (valKey === undefined) {
-      valKey = rowKey[2];
-    }
-
-    const sourceVal = row[sourceKey];
-    const targetVal = row[targetKey];
-
-    // either the provided keys or the guessed keys arent working
-    if (sourceVal === null || sourceVal === undefined || targetVal === null || targetVal === undefined) {
-      console.log('can not find the source or target in the data set, bailing');
-      err = 1;
-    }
-    names[sourceVal] = 1;
-    names[targetVal] = 1;
-  });
-
-  if (err) {
-    // something is wonky with the data
-    return [null, null, null];
+  if (!sourceKey) {
+    sourceKey = 0;
+  }
+  if (!targetKey) {
+    targetKey = 1;
+  }
+  if (!valKey) {
+    valKey = 2;
   }
 
-  // build matrix
-  const nameArray = Object.keys(names);
-  const index = new Map(
-    nameArray.map(function (name, i) {
-      return [name, i];
-    })
-  );
-  const revIdx = new Map(
-    nameArray.map(function (name, i) {
-      return [i, name];
-    })
-  );
-  const matrix = Array.from(index, () => new Array(nameArray.length).fill(-1));
+  // find all axis labels
+  let rows = [];
+  let columns = [];
   data.forEach((row) => {
-    // The keys of the names object were coerced to strings. If any values here
-    // are not strings, cast them to strings.
-    const s = row[sourceKey].toString();
-    const t = row[targetKey].toString();
-    const v = row[valKey];
-    // aggregate data
-    matrix[index.get(t)][index.get(s)] += v;
+    rows.push(row[sourceKey]);
+    columns.push(row[targetKey]);
   });
-  return [matrix, revIdx];
+
+  // Make new arrays from unique set of row and column axis labels
+  const rowNames = Array.from(new Set(rows)).sort();
+  const colNames = Array.from(new Set(columns)).sort();
+
+  // create data matrix
+  var dataMatrix = [];
+  for (let i = 0; i < rowNames.length; i++) {
+    dataMatrix.push(new Array(colNames.length).fill(-1));
+  }
+  data.forEach((row) => {
+    let r = rowNames.indexOf(row[sourceKey]);
+    let c = colNames.indexOf(row[targetKey]);
+    if (row[valKey]) {
+      dataMatrix[r][c] = row[valKey];
+    } else {
+      dataMatrix[r][c] = null;
+    }
+  });
+  console.log(dataMatrix);
+  return [rowNames, colNames, dataMatrix];
 }
 
 /**
