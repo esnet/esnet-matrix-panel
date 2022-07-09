@@ -210,7 +210,6 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
         //like the mouseover above go ahead and render the text so we can calculate its size
         //and position correctly.
         div.html(() => {
-          console.log('d is:' + d);
           var thisDisplay = valueField[0].display(d.val);
           var text =
             '<p><b>From: </b> ' +
