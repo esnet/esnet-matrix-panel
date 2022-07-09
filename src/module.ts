@@ -1,7 +1,7 @@
-import { FieldOverrideContext, getFieldDisplayName, PanelPlugin } from '@grafana/data';
-
+import { FieldOverrideContext, getFieldDisplayName, PanelPlugin, FieldConfigProperty } from '@grafana/data';
+import { standardOptionsCompat } from 'grafana-plugin-support';
 import { MatrixOptions } from './types';
-import { esnetMatrix } from './esnetMatrix';
+import { EsnetMatrix } from './EsnetMatrix';
 
 /**
  * Grafana panel plugin main module
@@ -13,9 +13,16 @@ import { esnetMatrix } from './esnetMatrix';
  */
 const OptionsCategory = ['Display'];
 
-export const plugin = new PanelPlugin<MatrixOptions>(esnetMatrix);
+const buildStandardOptions = (): any => {
+  const options = [FieldConfigProperty.Unit, FieldConfigProperty.Color];
+  return standardOptionsCompat(options);
+};
 
-plugin.setPanelOptions(builder => {
+export const plugin = new PanelPlugin<MatrixOptions>(EsnetMatrix);
+plugin.useFieldConfig({
+  standardOptions: buildStandardOptions(),
+});
+plugin.setPanelOptions((builder) => {
   builder.addSelect({
     path: 'targetField',
     name: 'Target Field',
