@@ -33,12 +33,12 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
   // const valueField = data.series.map((series) => series.fields.find((field) => field.type === 'number'));
 
   var colorMap = (v) => {
-    if (v >= 0) {
-      return valueField[0].display(v).color;
+    if (v == null) {
+      return '#FF981C';
     } else if (v == -1) {
       return '#F0F0F0';
     } else {
-      return '#FF981C';
+      return valueField[0].display(v).color;
     }
   };
 
@@ -189,7 +189,11 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
       return str;
     })
     .attr('fill', function (d) {
-      return colorMap(d);
+      if(d == -1) {
+        return colorMap(d);
+      } else {
+      return colorMap(d.val);
+      }
     })
     //hide the spot where a node intersects with itself
     .style('visibility', function (d, i) {
@@ -199,13 +203,25 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
       return 'visible';
     })
     .on('mouseover', function (event, d) {
-      if (d >= 0) {
+      if (d != -1) {
         //turn down the opacity slightly to show the hover
         d3.select(this).attr('opacity', '.85');
 
         //like the mouseover above go ahead and render the text so we can calculate its size
         //and position correctly.
-        div.html(d);
+        div.html(() => {
+          console.log('d is:' + d);
+          var thisDisplay = valueField[0].display(d.val);
+          var text =
+            '<p><b>From: </b> ' +
+            d.row +
+            '</p><p><b>To: </b> ' +
+            d.col +
+            '</p><p>Loss: ' +
+            thisDisplay.text +
+            (thisDisplay.suffix ? thisDisplay.suffix : '');
+          return text;
+        });
 
         var rect = event.target.getBoundingClientRect();
         var divSize = div.node().getBoundingClientRect();
@@ -279,13 +295,13 @@ function prepData(data, src, target, val) {
   data.forEach((row) => {
     let r = rowNames.indexOf(row[sourceKey]);
     let c = colNames.indexOf(row[targetKey]);
-    if (row[valKey]) {
-      dataMatrix[r][c] = row[valKey];
-    } else {
-      dataMatrix[r][c] = null;
+    dataMatrix[r][c] = {
+      row: row[sourceKey],
+      col: row[targetKey],
+      val: row[valKey]
     }
+    // dataMatrix[r][c] = row[valKey];
   });
-  console.log(dataMatrix);
   return [rowNames, colNames, dataMatrix];
 }
 
