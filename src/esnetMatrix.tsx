@@ -3,21 +3,16 @@ import { PanelProps } from '@grafana/data';
 import { MatrixOptions } from 'types';
 // import * as d3 from 'd3';
 
-import * as matrix from './matrix.js';
+import * as Matrix from './matrix.js';
 
 interface Props extends PanelProps<MatrixOptions> {}
 
 export const EsnetMatrix: React.FC<Props> = ({ options, data, width, height, id }) => {
-  const ref = matrix.matrix(
+  const ref = Matrix.matrix(
     data,
-    options.sourceField,
-    options.targetField,
-    options.valueField,
+    id,
     height,
-    options.cellSize,
-    options.cellPadding,
-    options.txtLength,
-    options.txtSize
+    options
   );
   return <svg ref={ref} width={width} height={height}></svg>;
 };
