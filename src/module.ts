@@ -24,31 +24,6 @@ plugin.useFieldConfig({
 });
 plugin.setPanelOptions((builder) => {
   builder.addSelect({
-    path: 'targetField',
-    name: 'Target Field',
-    description: 'Select the field to use as the target ',
-    category: OptionsCategory,
-    settings: {
-      allowCustomValue: false,
-      options: [],
-      getOptions: async (context: FieldOverrideContext) => {
-        const options = [];
-        if (context && context.data) {
-          for (const frame of context.data) {
-            for (const field of frame.fields) {
-              const name = getFieldDisplayName(field, frame, context.data);
-              const value = name;
-              options.push({ value, label: name });
-            }
-          }
-        }
-        return Promise.resolve(options);
-      },
-    },
-    // ---- todo: figure out how to guess at a default for these
-    // defaultValue: options[1],
-  });
-  builder.addSelect({
     path: 'sourceField',
     name: 'Source Field',
     description: 'Select the fields that should be used as the source',
@@ -72,6 +47,43 @@ plugin.setPanelOptions((builder) => {
     },
     // defaultValue: options[0],
   });
+  builder.addTextInput({
+    path: 'sourceText',
+    name: 'Source Text',
+    description: 'The text to be displayed in the tooltip.',
+    category: OptionsCategory,
+    defaultValue: 'From'
+  });
+  builder.addSelect({
+    path: 'targetField',
+    name: 'Target Field',
+    description: 'Select the field to use as the target ',
+    category: OptionsCategory,
+    settings: {
+      allowCustomValue: false,
+      options: [],
+      getOptions: async (context: FieldOverrideContext) => {
+        const options = [];
+        if (context && context.data) {
+          for (const frame of context.data) {
+            for (const field of frame.fields) {
+              const name = getFieldDisplayName(field, frame, context.data);
+              const value = name;
+              options.push({ value, label: name });
+            }
+          }
+        }
+        return Promise.resolve(options);
+      },
+    },
+  });
+    builder.addTextInput({
+      path: 'targetText',
+      name: 'Target Text',
+      description: 'The text to be displayed in the tooltip.',
+      category: OptionsCategory,
+      defaultValue: 'To',
+    });
   builder.addSelect({
     path: 'valueField',
     name: 'Value Field',
@@ -96,6 +108,13 @@ plugin.setPanelOptions((builder) => {
     },
     // defaultValue: options[2],
   });
+    builder.addTextInput({
+      path: 'valueText',
+      name: 'value Text',
+      description: 'The text to be displayed in the tooltip.',
+      category: OptionsCategory,
+      defaultValue: 'Value',
+    });
 
   builder.addNumberInput({
     path: 'cellSize',
@@ -153,6 +172,21 @@ plugin.setPanelOptions((builder) => {
     },
     defaultValue: 100,
   });
+    builder.addColorPicker({
+      path: 'nullColor',
+      name: 'Null Color',
+      description: 'The color to use when the query returns a null value',
+      category: OptionsCategory,
+      defaultValue: '#E6E6E6',
+    });
+    builder.addColorPicker({
+      path: 'defaultColor',
+      name: 'No Data Color',
+      description: 'The color to use when there is no data returned by the query',
+      category: OptionsCategory,
+      defaultValue: '#E6E6E6',
+    });
 });
+
 
 // .useFieldConfig({});

@@ -1,11 +1,6 @@
 export function matrix(
   data: PanelData,
-  src: string,
-  target: string,
-  value: string,
+  id: number,
   height: number,
-  cellSize: number,
-  cellPadding: number,
-  txtLength: number,
-  txtSize: number
+  options: any
 ): LegacyRef<SVGSVGElement> | undefined;

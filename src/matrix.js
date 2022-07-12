@@ -5,6 +5,7 @@ import { useTheme } from '@grafana/ui';
 
 /** Create the matrix diagram using d3.
  * @param {*} elem The parent svg element that will house this diagram
+ * @param {*} id The panel id
  * @param {number} height The current height of the panel
  * @param {*} data The data that will populate the diagram
  * @param {string} src The data series that will act as the source
@@ -12,9 +13,20 @@ import { useTheme } from '@grafana/ui';
  * @param {string} val The data series that will act as the value
  * @param {GrafanaTheme} theme
  */
-function createViz(elem, height, data, src, target, val, theme, cellSize, cellPadding, txtLength, txtSize) {
-  txtSize = txtSize / 100; //convert this val to EM scaling 90 = .9em 100 = 1em ... etc
-  cellPadding = cellPadding / 100; // convert the cellPadding integer to a float that can be used by d3
+function createViz(elem, id, height, data, theme, options) {
+  const src = options.sourceField,
+    target = options.targetField,
+    val = options.valueField,
+    srcText = options.sourceText,
+    targetText = options.targetText,
+    valText = options.valueText,
+    cellSize = options.cellSize,
+    cellPadding = options.cellPadding / 100, // convert the cellPadding integer to a float that can be used by d3
+    txtLength = options.txtLength,
+    txtSize = options.txtSize / 100, //convert this val to EM scaling 90 = .9em 100 = 1em ... etc
+    nullColor = fixColor(options.nullColor),
+    defaultColor = fixColor(options.defaultColor);
+
   // do a bit of work to setup the visual layout of the wiget --------
   if (elem === null) {
     console.log('bailing after failing to find parent element');
@@ -30,13 +42,13 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
     ? data.series.map((series) => series.fields.find((field) => field.name === val))
     : data.series.map((series) => series.fields.find((field) => field.type === 'number'));
 
-  // const valueField = data.series.map((series) => series.fields.find((field) => field.type === 'number'));
-
+  // function that maps value to color specified by Standard Options panel.
+  // if value is null or was not returned by query, use different value
   var colorMap = (v) => {
     if (v == null) {
-      return '#FF981C';
+      return nullColor;
     } else if (v == -1) {
-      return '#F0F0F0';
+      return defaultColor;
     } else {
       return valueField[0].display(v).color;
     }
@@ -71,13 +83,13 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
   //since this informs the margin we want to set it to whichever is longer
   //this prevents a huge white space if txtlength is considerably bigger
   //than the longest name
-  txtLength = longest.length < txtLength ? longest.length : txtLength;
+  const maxTxtLength = longest.length < txtLength ? longest.length : txtLength;
 
   //the user settable value cellsize controls the size of the svg.
   // var size = names.length * cellSize;
 
   //calculate the margins needed
-  var txtOffset = txtLength * 5 + 25;
+  var txtOffset = maxTxtLength * 5 + 25;
 
   // set the dimensions and margins of the graph
   // the top has a drop shadow and needs an extra 10 pixels to display properly
@@ -103,9 +115,11 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
     .style('opacity', 0);
 
   // append the svg object to the body of the page
+  var svgClass = `svg-${id}`;
   var svg = d3
     .select(elem)
     .append('svg')
+    .attr('id', svgClass)
     .attr('width', width + margin.left + margin.right)
     .attr('height', height + margin.top + margin.bottom)
     .append('g')
@@ -129,7 +143,7 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
     .attr('font-size', txtSize + 'em')
     .style('font-family', theme.typography.fontFamily.sansSerif)
     .attr('fill', theme.colors.text)
-    .call(truncateLabel, txtLength)
+    .call(truncateLabel, maxTxtLength)
     .on('mouseover', function (event, d) {
       div.html(d);
 
@@ -156,10 +170,11 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
   //use d3's local stuff to record where we are in the outer loop
   var outer = d3.local();
 
-  var svg_g = d3.selectAll('svg > g');
+  var svg_g = d3.select('#' + svgClass).selectAll('svg > g');
 
   //create the area where we will put all the boxes
-  var rectArea = svg_g.append('g').attr('class', 'rectArea');
+  const rectClass = `rectArea-${id}`;
+  var rectArea = svg_g.append('g').attr('class', rectClass);
 
   //this selection breaks the data down to the row level. This is
   //needed because the underlying datastructure is a 2d array
@@ -173,6 +188,7 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
     })
     .enter()
     .append('rect')
+    .attr('id', `rect-${id}`)
     .attr('x', function (d, i, j) {
       return x(colNames[i]);
     })
@@ -189,10 +205,10 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
       return str;
     })
     .attr('fill', function (d) {
-      if(d == -1) {
+      if (d == -1) {
         return colorMap(d);
       } else {
-      return colorMap(d.val);
+        return colorMap(d.val);
       }
     })
     //hide the spot where a node intersects with itself
@@ -211,14 +227,24 @@ function createViz(elem, height, data, src, target, val, theme, cellSize, cellPa
         //and position correctly.
         div.html(() => {
           var thisDisplay = valueField[0].display(d.val);
+          // var text =
+          //   '<p><b>From: </b> ' +
+          //   d.row +
+          //   '</p><p><b>To: </b> ' +
+          //   d.col +
+          //   '</p><p>Loss: ' +
+          //   thisDisplay.text +
+          //   (thisDisplay.suffix ? thisDisplay.suffix : '') +
+          //   '</p>';
           var text =
-            '<p><b>From: </b> ' +
+            '<p><b>From:</b> ' +
             d.row +
-            '</p><p><b>To: </b> ' +
+            '<br><b>To:</b> ' +
             d.col +
-            '</p><p>Loss: ' +
+            '<br><b>Loss:</b> ' +
             thisDisplay.text +
-            (thisDisplay.suffix ? thisDisplay.suffix : '');
+            (thisDisplay.suffix ? thisDisplay.suffix : '') +
+            '</p>';
           return text;
         });
 
@@ -297,27 +323,114 @@ function prepData(data, src, target, val) {
     dataMatrix[r][c] = {
       row: row[sourceKey],
       col: row[targetKey],
-      val: row[valKey]
-    }
+      val: row[valKey],
+    };
     // dataMatrix[r][c] = row[valKey];
   });
   return [rowNames, colNames, dataMatrix];
 }
 
+
+/**
+ * 
+ * @param {string} color the color returned by grafana ie light-green
+ * @returns {string} the hex of the color
+ */
+function fixColor(color) {
+  switch (color) {
+    case 'dark-green':
+      color = '#1A7311';
+      break;
+    case 'semi-dark-green':
+      color = '#36872D';
+      break;
+    case 'light-green':
+      color = '#73BF68';
+      break;
+    case 'super-light-green':
+      color = '#96D88C';
+      break;
+    case 'dark-yellow':
+      color = 'rgb(207, 159, 0)';
+      break;
+    case 'semi-dark-yellow':
+      color = 'rgb(224, 180, 0)';
+      break;
+    case 'light-yellow':
+      color = 'rgb(250, 222, 42)';
+      break;
+    case 'super-light-yellow':
+      color = 'rgb(255, 238, 82)';
+      break;
+    case 'dark-red':
+      color = 'rgb(173, 3, 23)';
+      break;
+    case 'semi-dark-red':
+      color = 'rgb(196, 22, 42)';
+      break;
+    case 'light-red':
+      color = 'rgb(242, 73, 92)';
+      break;
+    case 'super-light-red':
+      color = 'rgb(255, 115, 131)';
+      break;
+    case 'dark-blue':
+      color = 'rgb(18, 80, 176)';
+      break;
+    case 'semi-dark-blue':
+      color = 'rgb(31, 96, 196)';
+      break;
+    case 'light-blue':
+      color = 'rgb(87, 148, 242)';
+      break;
+    case 'super-light-blue':
+      color = 'rgb(138, 184, 255)';
+      break;
+    case 'dark-orange':
+      color = 'rgb(229, 84, 0)';
+      break;
+    case 'semi-dark-orange':
+      color = 'rgb(250, 100, 0)';
+      break;
+    case 'light-orange':
+      color = 'rgb(255, 152, 48)';
+      break;
+    case 'super-light-orange':
+      color = 'rgb(255, 179, 87)';
+      break;
+    case 'dark-purple':
+      color = 'rgb(124, 46, 163)';
+      break;
+    case 'semi-dark-purple':
+      color = 'rgb(143, 59, 184)';
+      break;
+    case 'light-purple':
+      color = 'rgb(184, 119, 217)';
+      break;
+    case 'super-light-purple':
+      color = 'rgb(202, 149, 229)';
+      break;
+    default:
+      break;
+  }
+  return color;
+}
+
 /**
  *
  * @param {*} data Data for the chord diagram
+ * @param {*} id The panel id
  * @param {string} src The data series that will act as the source
  * @param {string} target The data series that will act as * the target
  * @param {string} val The data series that will act as the value
  * @param {number} height Height of panel
  * @return {*} A d3 callback
  */
-function matrix(data, src, target, val, height, cellSize, cellPadding, txtLength, txtSize) {
+function matrix(data, id, height, options) {
   const theme = useTheme();
   // some react related voodoo
   const ref = useD3((svg) => {
-    createViz(svg, height, data, src, target, val, theme, cellSize, cellPadding, txtLength, txtSize);
+    createViz(svg, id, height, data, theme, options);
   });
   return ref;
 }
