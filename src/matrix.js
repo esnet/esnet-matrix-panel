@@ -25,7 +25,8 @@ function createViz(elem, id, height, data, theme, options) {
     txtLength = options.txtLength,
     txtSize = options.txtSize / 100, //convert this val to EM scaling 90 = .9em 100 = 1em ... etc
     nullColor = fixColor(options.nullColor),
-    defaultColor = fixColor(options.defaultColor);
+    defaultColor = fixColor(options.defaultColor),
+    linkURL = options.url;
 
   // do a bit of work to setup the visual layout of the wiget --------
   if (elem === null) {
@@ -187,6 +188,8 @@ function createViz(elem, id, height, data, theme, options) {
       return d;
     })
     .enter()
+    .append('a')
+    .attr('xlink:href', 'https://www.google.com')
     .append('rect')
     .attr('id', `rect-${id}`)
     .attr('x', function (d, i, j) {
@@ -236,15 +239,12 @@ function createViz(elem, id, height, data, theme, options) {
           //   thisDisplay.text +
           //   (thisDisplay.suffix ? thisDisplay.suffix : '') +
           //   '</p>';
-          var text =
-            '<p><b>From:</b> ' +
-            d.row +
-            '<br><b>To:</b> ' +
-            d.col +
-            '<br><b>Loss:</b> ' +
-            thisDisplay.text +
-            (thisDisplay.suffix ? thisDisplay.suffix : '') +
-            '</p>';
+          var text = `<p><b>${srcText}:</b> ${d.row}
+            <br>
+            <b>${targetText}:</b> ${d.col}
+            <br>
+            <b>${valText}:</b> ${thisDisplay.text} ${thisDisplay.suffix ? thisDisplay.suffix : ''}
+            </p>`;
           return text;
         });
 
@@ -330,9 +330,8 @@ function prepData(data, src, target, val) {
   return [rowNames, colNames, dataMatrix];
 }
 
-
 /**
- * 
+ *
  * @param {string} color the color returned by grafana ie light-green
  * @returns {string} the hex of the color
  */
