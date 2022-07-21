@@ -12,6 +12,9 @@ import { EsnetMatrix } from './EsnetMatrix';
  * @return {*} { builder: PanelOptionsEditorBuilder<NetSageSankeyOptions> }
  */
 const OptionsCategory = ['Display'];
+const URLCategory = ['Link Options'];
+const urlBool = (addUrl: boolean) => (config: MatrixOptions) => config.addUrl === addUrl;
+// const urlOtherBool = (urlOther: boolean) => (config: MatrixOptions) => config.urlOther === urlOther;
 
 const buildStandardOptions = (): any => {
   const options = [FieldConfigProperty.Unit, FieldConfigProperty.Color];
@@ -186,6 +189,49 @@ plugin.setPanelOptions((builder) => {
       category: OptionsCategory,
       defaultValue: '#E6E6E6',
     });
+    /////////----------- Link URL options ---------------////////////////
+    builder.addBooleanSwitch({
+      path: 'addUrl',
+      name: 'Add Data Link',
+      category: URLCategory,
+      defaultValue: false,
+    });
+    builder.addTextInput({
+      path: 'url',
+      name: 'Link URL',
+      description: 'URL to go to when square is clicked.',
+      category: URLCategory,
+      showIf: urlBool(true),
+    });
+    builder.addTextInput({
+      path: 'urlVar1',
+      name: 'Variable 1',
+      description: 'The name of the template variable to pass the source label to',
+      category: URLCategory,
+      showIf: urlBool(true),
+    });
+    builder.addTextInput({
+      path: 'urlVar2',
+      name: 'Variable 2',
+      description: 'The name of the template variable to pass the target label to',
+      category: URLCategory,
+      showIf: urlBool(true),
+    });
+    // builder.addBooleanSwitch({
+    //   path: 'urlOther',
+    //   name: 'Append more text',
+    //   description: 'Ex: date',
+    //   category: URLCategory,
+    //   defaultValue: true,
+    //   showIf: urlBool(true),
+    // });
+    // builder.addTextInput({
+    //   path: 'urlOtherText',
+    //   name: 'Text',
+    //   description: 'Other text to append to URL',
+    //   category: URLCategory,
+    //   showIf: urlOtherBool(true),
+    // });
 });
 
 

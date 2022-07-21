@@ -11,4 +11,10 @@ export interface MatrixOptions {
   sourceText: string;
   targetText: string;
   valueText: string;
+  addUrl: boolean;
+  url: string;
+  urlVar1: string;
+  urlVar2: string;
+  urlOther: boolean;
+  urlOtherText: string;
 }

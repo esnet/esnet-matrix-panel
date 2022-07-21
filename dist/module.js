@@ -16322,7 +16322,12 @@ function createViz(elem, id, height, data, theme, options) {
       txtSize = options.txtSize / 100,
       //convert this val to EM scaling 90 = .9em 100 = 1em ... etc
   nullColor = fixColor(options.nullColor),
-      defaultColor = fixColor(options.defaultColor); // do a bit of work to setup the visual layout of the wiget --------
+      defaultColor = fixColor(options.defaultColor),
+      linkURL = options.url,
+      urlVar1 = options.urlVar1,
+      urlVar2 = options.urlVar2; // urlOther = options.urlOther,
+  // urlOtherText = options.urlOtherText;
+  // do a bit of work to setup the visual layout of the wiget --------
 
   if (elem === null) {
     console.log('bailing after failing to find parent element');
@@ -16450,7 +16455,25 @@ function createViz(elem, id, height, data, theme, options) {
   var rects = rows.selectAll('rect').data(function (d, i) {
     outer.set(this, i);
     return d;
-  }).enter().append('rect').attr('id', "rect-".concat(id)).attr('x', function (d, i, j) {
+  }).enter().append('a').attr('xlink:href', function (d) {
+    if (linkURL) {
+      var thisURL = linkURL;
+
+      if (urlVar1) {
+        thisURL = thisURL.concat("&var-".concat(urlVar1, "=").concat(d.row));
+      }
+
+      if (urlVar2) {
+        thisURL = thisURL.concat("&var-".concat(urlVar2, "=").concat(d.col));
+      } // if (urlOther) {
+      //   thisURL = thisURL.concat(urlOtherText);
+      //   console.log(thisURL);
+      // }
+
+
+      return thisURL;
+    }
+  }).append('rect').attr('id', "rect-".concat(id)).attr('x', function (d, i, j) {
     return x(colNames[i]);
   }).attr('y', function (d, i, j) {
     var outer_counter = outer.get(this);
@@ -16480,17 +16503,8 @@ function createViz(elem, id, height, data, theme, options) {
       //and position correctly.
 
       div.html(function () {
-        var thisDisplay = valueField[0].display(d.val); // var text =
-        //   '<p><b>From: </b> ' +
-        //   d.row +
-        //   '</p><p><b>To: </b> ' +
-        //   d.col +
-        //   '</p><p>Loss: ' +
-        //   thisDisplay.text +
-        //   (thisDisplay.suffix ? thisDisplay.suffix : '') +
-        //   '</p>';
-
-        var text = '<p><b>From:</b> ' + d.row + '<br><b>To:</b> ' + d.col + '<br><b>Loss:</b> ' + thisDisplay.text + (thisDisplay.suffix ? thisDisplay.suffix : '') + '</p>';
+        var thisDisplay = valueField[0].display(d.val);
+        var text = "<p><b>".concat(srcText, ":</b> ").concat(d.row, "\n            <br>\n            <b>").concat(targetText, ":</b> ").concat(d.col, "\n            <br>\n            <b>").concat(valText, ":</b> ").concat(thisDisplay.text, " ").concat(thisDisplay.suffix ? thisDisplay.suffix : '', "\n            </p>");
         return text;
       });
       var rect = event.target.getBoundingClientRect();
@@ -16575,7 +16589,7 @@ function prepData(data, src, target, val) {
   return [rowNames, colNames, dataMatrix];
 }
 /**
- * 
+ *
  * @param {string} color the color returned by grafana ie light-green
  * @returns {string} the hex of the color
  */
@@ -20837,6 +20851,14 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
  */
 
 var OptionsCategory = ['Display'];
+var URLCategory = ['Link Options'];
+
+var urlBool = function urlBool(addUrl) {
+  return function (config) {
+    return config.addUrl === addUrl;
+  };
+}; // const urlOtherBool = (urlOther: boolean) => (config: MatrixOptions) => config.urlOther === urlOther;
+
 
 var buildStandardOptions = function buildStandardOptions() {
   var options = [_grafana_data__WEBPACK_IMPORTED_MODULE_0__.FieldConfigProperty.Unit, _grafana_data__WEBPACK_IMPORTED_MODULE_0__.FieldConfigProperty.Color];
@@ -21137,7 +21159,49 @@ plugin.setPanelOptions(function (builder) {
     description: 'The color to use when there is no data returned by the query',
     category: OptionsCategory,
     defaultValue: '#E6E6E6'
+  }); /////////----------- Link URL options ---------------////////////////
+
+  builder.addBooleanSwitch({
+    path: 'addUrl',
+    name: 'Add Data Link',
+    category: URLCategory,
+    defaultValue: false
   });
+  builder.addTextInput({
+    path: 'url',
+    name: 'Link URL',
+    description: 'URL to go to when square is clicked.',
+    category: URLCategory,
+    showIf: urlBool(true)
+  });
+  builder.addTextInput({
+    path: 'urlVar1',
+    name: 'Variable 1',
+    description: 'The name of the template variable to pass the source label to',
+    category: URLCategory,
+    showIf: urlBool(true)
+  });
+  builder.addTextInput({
+    path: 'urlVar2',
+    name: 'Variable 2',
+    description: 'The name of the template variable to pass the target label to',
+    category: URLCategory,
+    showIf: urlBool(true)
+  }); // builder.addBooleanSwitch({
+  //   path: 'urlOther',
+  //   name: 'Append more text',
+  //   description: 'Ex: date',
+  //   category: URLCategory,
+  //   defaultValue: true,
+  //   showIf: urlBool(true),
+  // });
+  // builder.addTextInput({
+  //   path: 'urlOtherText',
+  //   name: 'Text',
+  //   description: 'Other text to append to URL',
+  //   category: URLCategory,
+  //   showIf: urlOtherBool(true),
+  // });
 }); // .useFieldConfig({});
 })();
 
