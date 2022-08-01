@@ -1,6 +1,6 @@
 {
   "name": "esnet-matrix-panel",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "ESNET Matrix Panel",
   "scripts": {
     "build": "grafana-toolkit plugin:build",
