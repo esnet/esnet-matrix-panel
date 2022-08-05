@@ -23,7 +23,7 @@ function createViz(elem, id, height, data, theme, options) {
     cellSize = options.cellSize,
     cellPadding = options.cellPadding / 100, // convert the cellPadding integer to a float that can be used by d3
     txtLength = options.txtLength,
-    txtSize = options.txtSize / 100, //convert this val to EM scaling 90 = .9em 100 = 1em ... etc
+    txtSize = options.txtSize / 10, //convert this val to EM scaling 90 = .9em 100 = 1em ... etc
     nullColor = theme.visualization.getColorByName(options.nullColor),
     defaultColor = theme.visualization.getColorByName(options.defaultColor),
     linkURL = options.url,
@@ -94,7 +94,7 @@ function createViz(elem, id, height, data, theme, options) {
   // var size = names.length * cellSize;
 
   //calculate the margins needed
-  var txtOffset = maxTxtLength * 5 + 25;
+  var txtOffset = maxTxtLength * txtSize * 5 + 25;
 
   // set the dimensions and margins of the graph
   // the top has a drop shadow and needs an extra 10 pixels to display properly
