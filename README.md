@@ -17,6 +17,10 @@ This plugin creates a 2D matrix based on 2 group by inputs and the selected metr
 <span style="color:#6D6E71; font-weight:bold">Null Color:</span> The color to use for a square when "null" is returned by the query
 <span style="color:#6D6E71; font-weight:bold">No Data Color:</span> The color to use for a square when there is no value returned by the query for the specified source and target pair.
 
-### <span style="color:#FF780C">Colors</span>
-The color of each square will be determined by the selected metric and the color choice in the Standard Options
+#### <span style="color:#FF780C">Colors</span>
+The color of each square will be determined by the selected metric and the color choice in the **Standard Options**.
+
+
+
+
 
