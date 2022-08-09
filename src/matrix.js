@@ -233,13 +233,6 @@ function createViz(elem, id, height, data, theme, options) {
         return colorMap(d.val);
       }
     })
-    //hide the spot where a node intersects with itself
-    .style('visibility', function (d, i) {
-      if (colNames[i] == rowNames[outer.get(this)]) {
-        return 'hidden';
-      }
-      return 'visible';
-    })
     .on('mouseover', function (event, d) {
       if (d != -1) {
         //turn down the opacity slightly to show the hover
