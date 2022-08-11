@@ -1,0 +1,30 @@
+{
+  "$schema": "https://raw.githubusercontent.com/grafana/grafana/master/docs/sources/developers/plugins/plugin.schema.json",
+  "type": "panel",
+  "name": "ESNET Matrix Panel",
+  "id": "esnet-matrix-panel",
+
+  "info": {
+    "description": "Generic Matrix Panel",
+    "author": {
+      "name": "Brayton Thompson"
+    },
+    "keywords": ["panel", "matrix", "esnet"],
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "links": [
+      {"name": "Website", "url": "https://github.com/thompsbp-esnet/grafana-esnet-matrix-panel"},
+      {"name": "License", "url": "https://github.com/thompsbp-esnet/grafana-esnet-matrix-panel/blob/master/LICENSE"}
+    ],
+    "screenshots": [],
+    "version": "1.0.0",
+    "updated": "2022-08-11"
+  },
+
+  "dependencies": {
+    "grafanaDependency": ">=7.0.0",
+    "plugins": []
+  }
+}
