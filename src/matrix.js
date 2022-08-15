@@ -29,8 +29,8 @@ function createViz(elem, id, height, data, theme, options) {
     linkURL = options.url,
     urlVar1 = options.urlVar1,
     urlVar2 = options.urlVar2;
-    // urlOther = options.urlOther,
-    // urlOtherText = options.urlOtherText;
+  // urlOther = options.urlOther,
+  // urlOtherText = options.urlOtherText;
 
   // do a bit of work to setup the visual layout of the wiget --------
   if (elem === null) {
@@ -242,7 +242,11 @@ function createViz(elem, id, height, data, theme, options) {
     .on('mouseover', function (event, d) {
       if (d != -1) {
         //turn down the opacity slightly to show the hover
-        d3.select(this).attr('opacity', '.85');
+        d3.select(this)
+          // .attr('opacity', '.75')
+          .attr('width', x.bandwidth() + 5)
+          .attr('height', y.bandwidth() + 5)
+          .attr('transform', 'translate(-1, -1)');
 
         //like the mouseover above go ahead and render the text so we can calculate its size
         //and position correctly.
@@ -268,7 +272,11 @@ function createViz(elem, id, height, data, theme, options) {
     })
     .on('mouseout', function (d, i) {
       //reset the opacity and move the div out of the way. If we dont move it it will prevent hovering over other boxes.
-      d3.select(this).attr('opacity', '1');
+      d3.select(this)
+        // .attr('opacity', '1')
+        .attr('transform', 'translate(0, 0)')
+        .attr('width', x.bandwidth())
+        .attr('height', y.bandwidth());
       div.style('opacity', 0).style('left', '0px').style('top', '0px');
     });
 }
