@@ -67,7 +67,13 @@ function createViz(elem, id, height, data, theme, options) {
   }
 
   const view = new DataFrameView(frame);
-  const [rowNames, colNames, matrix] = prepData(view, src, target, val);
+  let rowNames, colNames, matrix;
+  try {
+    [rowNames, colNames, matrix] = prepData(view, src, target, val);
+  } catch (error) {
+    console.log('incorrect data format');
+    return;
+  }
   // this is making a questionable assumption that the quant data we care about
   // is in the 3rd column
   const fieldDisplay = view.getFieldDisplayProcessor(2);
