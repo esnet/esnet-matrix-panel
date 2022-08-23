@@ -1,6 +1,5 @@
 import { useD3 } from './useD3.js';
 import * as d3 from './d3.min.js';
-import { DataFrameView } from '@grafana/data';
 import { useTheme2 } from '@grafana/ui';
 
 /** Create the matrix diagram using d3.
@@ -13,19 +12,14 @@ import { useTheme2 } from '@grafana/ui';
  * @param {string} val The data series that will act as the value
  * @param {GrafanaTheme} theme
  */
-function createViz(elem, id, height, data, theme, options) {
-  const src = options.sourceField,
-    target = options.targetField,
-    val = options.valueField,
-    srcText = options.sourceText,
+function createViz(elem, id, height, rowNames, colNames, matrix, options, theme) {
+  const srcText = options.sourceText,
     targetText = options.targetText,
     valText = options.valueText,
     cellSize = options.cellSize,
     cellPadding = options.cellPadding / 100, // convert the cellPadding integer to a float that can be used by d3
     txtLength = options.txtLength,
     txtSize = options.txtSize / 10, //convert this val to EM scaling 90 = .9em 100 = 1em ... etc
-    nullColor = theme.visualization.getColorByName(options.nullColor),
-    defaultColor = theme.visualization.getColorByName(options.defaultColor),
     linkURL = options.url,
     urlVar1 = options.urlVar1,
     urlVar2 = options.urlVar2;
@@ -42,59 +36,21 @@ function createViz(elem, id, height, data, theme, options) {
     elem.removeChild(elem.lastChild);
   }
 
-  // get color mapping from grafana
-  const valueField = val
-    ? data.series.map((series) => series.fields.find((field) => field.name === val))
-    : data.series.map((series) => series.fields.find((field) => field.type === 'number'));
-
-  // function that maps value to color specified by Standard Options panel.
-  // if value is null or was not returned by query, use different value
-  var colorMap = (v) => {
-    if (v == null) {
-      return nullColor;
-    } else if (v == -1) {
-      return defaultColor;
-    } else {
-      return valueField[0].display(v).color;
-    }
-  };
-
-  const frame = data.series[0];
-  if (frame === null || frame === undefined) {
-    // no data, bail
-    console.log('no data , no dice');
-    return;
-  }
-
-  const view = new DataFrameView(frame);
-  let rowNames, colNames, matrix;
-  try {
-    [rowNames, colNames, matrix] = prepData(view, src, target, val);
-  } catch (error) {
-    console.log('incorrect data format');
-    return;
-  }
-  // this is making a questionable assumption that the quant data we care about
-  // is in the 3rd column
-  const fieldDisplay = view.getFieldDisplayProcessor(2);
-  // TODO: convert this to use val field passed in.
-
-  if (matrix === null) return;
-
-  //make an array of the names of the nodes
-  // const names = Array.from(nameRevIdx.values());
-
   //find the length of the longest name. this will inform the margin and name truncation
   var allNames = rowNames.concat(colNames);
+  console.log(allNames);
   var longest = allNames.reduce((a, b) => {
     return a.length > b.length ? a : b;
   });
+  console.log('longest: ' + longest);
 
   //txtLength is passed in. but names may be much smaller than this value.
   //since this informs the margin we want to set it to whichever is longer
   //this prevents a huge white space if txtlength is considerably bigger
   //than the longest name
   const maxTxtLength = longest.length < txtLength ? longest.length : txtLength;
+
+  console.log('maxTxtLength: ' + maxTxtLength);
 
   //the user settable value cellsize controls the size of the svg.
   // var size = names.length * cellSize;
@@ -232,12 +188,9 @@ function createViz(elem, id, height, data, theme, options) {
       var str = '' + outer_counter + ':' + i + ' ' + rowNames[outer_counter] + ':' + colNames[i] + ' ' + d;
       return str;
     })
-    .attr('fill', function (d) {
-      if (d == -1) {
-        return colorMap(d);
-      } else {
-        return colorMap(d.val);
-      }
+    .attr('fill', (d) => {
+      console.log(d);
+      return d.color;
     })
     .on('mouseover', function (event, d) {
       if (d != -1) {
@@ -251,7 +204,7 @@ function createViz(elem, id, height, data, theme, options) {
         //like the mouseover above go ahead and render the text so we can calculate its size
         //and position correctly.
         div.html(() => {
-          var thisDisplay = valueField[0].display(d.val);
+          var thisDisplay = d.display;
           var text = `<p><b>${srcText}:</b> ${d.row}
             <br>
             <b>${targetText}:</b> ${d.col}
@@ -292,62 +245,6 @@ function truncateLabel(text, width) {
 }
 
 /**
- * this function creates an adjacency matrix to be consumed by the chord
- * function returns the matrix + forward and reverse lookup Maps to go from
- * source and target id to description assumes that data coming to us has at
- * least 3 columns if no preferences provided, assumes the first 3 columns are
- * source and target dimensions then value to display
- * @param {*} data Data for the chord diagram
- * @param {string} src The data series that will act as the source
- * @param {string} target The data series that will act as * the target
- * @param {string} val The data series that will act as the value
- * @return {[rowNames, colNames, dataMatrix]}
- */
-function prepData(data, src, target, val) {
-  let sourceKey = src;
-  let targetKey = target;
-  let valKey = val;
-  if (!sourceKey) {
-    sourceKey = 0;
-  }
-  if (!targetKey) {
-    targetKey = 1;
-  }
-  if (!valKey) {
-    valKey = 2;
-  }
-
-  // find all axis labels
-  let rows = [];
-  let columns = [];
-  data.forEach((row) => {
-    rows.push(row[sourceKey]);
-    columns.push(row[targetKey]);
-  });
-
-  // Make new arrays from unique set of row and column axis labels
-  const rowNames = Array.from(new Set(rows)).sort();
-  const colNames = Array.from(new Set(columns)).sort();
-
-  // create data matrix
-  var dataMatrix = [];
-  for (let i = 0; i < rowNames.length; i++) {
-    dataMatrix.push(new Array(colNames.length).fill(-1));
-  }
-  data.forEach((row) => {
-    let r = rowNames.indexOf(row[sourceKey]);
-    let c = colNames.indexOf(row[targetKey]);
-    dataMatrix[r][c] = {
-      row: row[sourceKey],
-      col: row[targetKey],
-      val: row[valKey],
-    };
-    // dataMatrix[r][c] = row[valKey];
-  });
-  return [rowNames, colNames, dataMatrix];
-}
-
-/**
  *
  * @param {*} data Data for the chord diagram
  * @param {*} id The panel id
@@ -357,11 +254,10 @@ function prepData(data, src, target, val) {
  * @param {number} height Height of panel
  * @return {*} A d3 callback
  */
-function matrix(data, id, height, options) {
+function matrix(rowNames, colNames, matrix, id, height, options) {
   const theme = useTheme2();
-  // some react related voodoo
   const ref = useD3((svg) => {
-    createViz(svg, id, height, data, theme, options);
+    createViz(svg, id, height, rowNames, colNames, matrix, options, theme);
   });
   return ref;
 }

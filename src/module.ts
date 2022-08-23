@@ -14,7 +14,7 @@ import { EsnetMatrix } from './EsnetMatrix';
 const OptionsCategory = ['Display'];
 const URLCategory = ['Link Options'];
 const urlBool = (addUrl: boolean) => (config: MatrixOptions) => config.addUrl === addUrl;
-// const urlOtherBool = (urlOther: boolean) => (config: MatrixOptions) => config.urlOther === urlOther;
+// const eurlOtherBool = (urlOther: boolean) => (config: MatrixOptions) => config.urlOther === urlOther;
 
 const buildStandardOptions = (): any => {
   const options = [FieldConfigProperty.Unit, FieldConfigProperty.Color];
@@ -159,7 +159,7 @@ plugin.setPanelOptions((builder) => {
       min: 1,
       max: 300,
     },
-    defaultValue: 100,
+    defaultValue: 50,
   });
 
   builder.addNumberInput({
@@ -173,7 +173,7 @@ plugin.setPanelOptions((builder) => {
       min: 1,
       max: 200,
     },
-    defaultValue: 100,
+    defaultValue: 10,
   });
     builder.addColorPicker({
       path: 'nullColor',

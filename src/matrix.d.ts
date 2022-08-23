@@ -1,5 +1,7 @@
 export function matrix(
-  data: PanelData,
+  rowNames: any, 
+  colNames: any, 
+  matrix: any,
   id: number,
   height: number,
   options: any
