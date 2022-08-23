@@ -1,6 +1,7 @@
 # <span style="color:#4EC1E0">Matrix Panel Plugin</span>
 
-This plugin creates a 2D matrix based on 2 group by inputs and the selected metric.
+This plugin creates a 2D matrix showing the relationship between 2 selected fields (source and target).
+Note: This is NOT inteded to use with time series data or large data sets.  It also will not render if there are >200 rows or columns
 
 ## <span style="color:#6D6E71">Options</span>
 ### <span style="color:#FF780C">Display</span>

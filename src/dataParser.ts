@@ -60,7 +60,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     rows.push(String(row[sourceKey]));
     columns.push(String(row[targetKey]));
   });
-  if (columns.length > 100 || rows.length > 100) {
+  if (columns.length > 200 || rows.length > 200) {
     return ("too long");
   }
 
