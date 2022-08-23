@@ -38,7 +38,6 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     ? data.series.map((series: { fields: any[] }) => series.fields.find((field: { name: any; }) => field.name === val))
     : data.series.map((series: { fields: any[] }) => series.fields.find((field: { type: string; }) => field.type === 'number'));
   const valKey = valueField[0].name;
-  console.log("valKey: " + valKey);
 
   // function that maps value to color specified by Standard Options panel.
   // if value is null or was not returned by query, use different value

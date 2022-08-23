@@ -38,19 +38,15 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme)
 
   //find the length of the longest name. this will inform the margin and name truncation
   var allNames = rowNames.concat(colNames);
-  console.log(allNames);
   var longest = allNames.reduce((a, b) => {
     return a.length > b.length ? a : b;
   });
-  console.log('longest: ' + longest);
 
   //txtLength is passed in. but names may be much smaller than this value.
   //since this informs the margin we want to set it to whichever is longer
   //this prevents a huge white space if txtlength is considerably bigger
   //than the longest name
   const maxTxtLength = longest.length < txtLength ? longest.length : txtLength;
-
-  console.log('maxTxtLength: ' + maxTxtLength);
 
   //the user settable value cellsize controls the size of the svg.
   // var size = names.length * cellSize;
@@ -164,10 +160,6 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme)
         if (urlVar2) {
           thisURL = thisURL.concat(`&var-${urlVar2}=${d.col}`);
         }
-        // if (urlOther) {
-        //   thisURL = thisURL.concat(urlOtherText);
-        //   console.log(thisURL);
-        // }
         return thisURL;
       }
     })
@@ -189,7 +181,6 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme)
       return str;
     })
     .attr('fill', (d) => {
-      console.log(d);
       return d.color;
     })
     .on('mouseover', function (event, d) {
