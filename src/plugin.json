@@ -5,9 +5,9 @@
   "id": "esnet-matrix-panel",
 
   "info": {
-    "description": "Generic Matrix Panel",
+    "description": "Matrix Panel Plugin that allows comparison of two non-timeseries categories",
     "author": {
-      "name": "Brayton Thompson"
+      "name": "Esnet"
     },
     "keywords": ["panel", "matrix", "esnet"],
     "logos": {
