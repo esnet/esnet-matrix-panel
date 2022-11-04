@@ -5,9 +5,9 @@
   "id": "esnet-matrix-panel",
 
   "info": {
-    "description": "Generic Matrix Panel",
+    "description": "Matrix Panel Plugin that allows comparison of two non-timeseries categories",
     "author": {
-      "name": "Brayton Thompson"
+      "name": "Esnet"
     },
     "keywords": ["panel", "matrix", "esnet"],
     "logos": {
@@ -18,7 +18,16 @@
       {"name": "Website", "url": "https://github.com/thompsbp-esnet/grafana-esnet-matrix-panel"},
       {"name": "License", "url": "https://github.com/thompsbp-esnet/grafana-esnet-matrix-panel/blob/master/LICENSE"}
     ],
-    "screenshots": [],
+    "screenshots": [
+      {
+        "name": "matrix-plugin",
+        "path": "img/matrix-plugin.png"
+      },
+      {
+        "name": "matrix-plugin2",
+        "path": "img/matrix-plugin2.png"
+      }
+    ],
     "version": "%VERSION%",
     "updated": "%TODAY%"
   },

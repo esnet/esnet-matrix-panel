@@ -15,6 +15,7 @@ import { DataFrameView } from '@grafana/data';
 
 export function parseData(data: { series: any[] }, options: any, theme: any) {
   const series = data.series[0];
+  console.log(series);
   const frame = new DataFrameView(series);
   
   if (frame === null || frame === undefined) {
@@ -37,7 +38,10 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   const valueField = val
     ? data.series.map((series: { fields: any[] }) => series.fields.find((field: { name: any; }) => field.name === val))
     : data.series.map((series: { fields: any[] }) => series.fields.find((field: { type: string; }) => field.type === 'number'));
+  // console.log(valueField);
   const valKey = valueField[0].name;
+  console.log(`sourceKey: ${sourceKey}, targetKey: ${targetKey}, value: ${valKey}`);
+  console.log(frame);
 
   // function that maps value to color specified by Standard Options panel.
   // if value is null or was not returned by query, use different value
@@ -63,19 +67,23 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   if (columns.length > 200 || rows.length > 200) {
     return ("too long");
   }
-
+  console.log(rows);
+  console.log(columns);
   // Make new arrays from unique set of row and column axis labels
   const rowNames = Array.from(new Set(rows)).sort();
   const colNames = Array.from(new Set(columns)).sort();
+    console.log(rowNames);
+    console.log(colNames);
 
   // create data matrix
   var dataMatrix: any[][] = [];
   for (let i = 0; i < rowNames.length; i++) {
     dataMatrix.push(new Array(colNames.length).fill(-1));
   }
+  console.log(dataMatrix);
   frame.forEach((row) => {
-    let r = rowNames.indexOf(row[sourceKey]);
-    let c = colNames.indexOf(row[targetKey]);
+    let r = rowNames.indexOf(String(row[sourceKey]));
+    let c = colNames.indexOf(String(row[targetKey]));
     let v = row[valKey];
     dataMatrix[r][c] = {
       row: row[sourceKey],
