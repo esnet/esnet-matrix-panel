@@ -22,7 +22,8 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme)
     txtSize = options.txtSize / 10, //convert this val to EM scaling 90 = .9em 100 = 1em ... etc
     linkURL = options.url,
     urlVar1 = options.urlVar1,
-    urlVar2 = options.urlVar2;
+    urlVar2 = options.urlVar2,
+    defaultColor = theme.visualization.getColorByName(options.defaultColor);
   // urlOther = options.urlOther,
   // urlOtherText = options.urlOtherText;
 
@@ -181,7 +182,11 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme)
       return str;
     })
     .attr('fill', (d) => {
-      return d.color;
+      if(d.color) {
+        return d.color;
+      } else {
+        return defaultColor;
+      }
     })
     .on('mouseover', function (event, d) {
       if (d != -1) {
