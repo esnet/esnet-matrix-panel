@@ -15,9 +15,14 @@ import { DataFrameView } from '@grafana/data';
 
 export function parseData(data: { series: any[] }, options: any, theme: any) {
   const series = data.series[0];
+  if (series === null || series === undefined) {
+    // no data, bail
+    console.log('no data');
+    return [null, null, null];
+  }
   console.log(series);
   const frame = new DataFrameView(series);
-  
+
   if (frame === null || frame === undefined) {
     // no data, bail
     console.log('no data');
@@ -33,11 +38,13 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   if (!targetKey) {
     targetKey = 1;
   }
-    // assign valueField to the specified field or use the first number field by default
+  // assign valueField to the specified field or use the first number field by default
   const val = options.valueField;
   const valueField = val
-    ? data.series.map((series: { fields: any[] }) => series.fields.find((field: { name: any; }) => field.name === val))
-    : data.series.map((series: { fields: any[] }) => series.fields.find((field: { type: string; }) => field.type === 'number'));
+    ? data.series.map((series: { fields: any[] }) => series.fields.find((field: { name: any }) => field.name === val))
+    : data.series.map((series: { fields: any[] }) =>
+        series.fields.find((field: { type: string }) => field.type === 'number')
+      );
   // console.log(valueField);
   const valKey = valueField[0].name;
   console.log(`sourceKey: ${sourceKey}, targetKey: ${targetKey}, value: ${valKey}`);
@@ -64,17 +71,15 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     rows.push(String(row[sourceKey]));
     columns.push(String(row[targetKey]));
   });
-  if (columns.length > 200 || rows.length > 200) {
-    return ("too long");
-  }
-  console.log(rows);
-  console.log(columns);
+
   // Make new arrays from unique set of row and column axis labels
   const rowNames = Array.from(new Set(rows)).sort();
   const colNames = Array.from(new Set(columns)).sort();
-    console.log(rowNames);
-    console.log(colNames);
-
+  console.log(rowNames);
+  console.log(colNames);
+  if (colNames.length > 200 || rowNames.length > 200) {
+    return 'too long';
+  }
   // create data matrix
   var dataMatrix: any[][] = [];
   for (let i = 0; i < rowNames.length; i++) {
@@ -90,9 +95,8 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
       col: row[targetKey],
       val: v,
       color: colorMap(v),
-      display: valueField[0].display(v)
+      display: valueField[0].display(v),
     };
-
   });
   return [rowNames, colNames, dataMatrix];
 }

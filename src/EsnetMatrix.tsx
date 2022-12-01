@@ -14,7 +14,7 @@ export const EsnetMatrix: React.FC<Props> = ({ options, data, width, height, id 
   try {
     const tryData = parseData(data, options, theme);
     if (tryData === "too long") {
-      console.error('Too many data points. ');
+      console.error('Too many data points.');
       return (
         <svg width={width} height={height}></svg>
       );
@@ -27,6 +27,10 @@ export const EsnetMatrix: React.FC<Props> = ({ options, data, width, height, id 
   const rowNames = parsedData[0];
   const colNames = parsedData[1];
   const matrix = parsedData[2];
+
+  if (matrix == null) {
+    return <div>No Data</div>;
+  }
 
   const ref = Matrix.matrix(rowNames, colNames, matrix, id, height, options);
   return <svg ref={ref} width={width} height={height}></svg>;
