@@ -1,4 +1,5 @@
 # Changelog
 
-## 1.0.4
-Initial release to Grafana
+## 1.0.5
+Fixed repo link
+Fixed bug with null color values
