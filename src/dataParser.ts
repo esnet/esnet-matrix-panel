@@ -72,7 +72,8 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   // Make new arrays from unique set of row and column axis labels
   const rowNames = Array.from(new Set(rows)).sort();
   const colNames = Array.from(new Set(columns)).sort();
-  if (colNames.length > 200 || rowNames.length > 200) {
+  const numSquaresInMatrix = rowNames.length * colNames.length;
+  if (numSquaresInMatrix > 50000) {
     return 'too long';
   }
   // create data matrix
