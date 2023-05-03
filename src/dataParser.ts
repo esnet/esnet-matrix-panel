@@ -83,7 +83,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     return 'too many inputs';
   }
   // create data matrix
-  var dataMatrix: any[][] = [];
+  let dataMatrix: any[][] = [];
   for (let i = 0; i < rowNames.length; i++) {
     dataMatrix.push(new Array(colNames.length).fill(-1));
   }
