@@ -14,7 +14,7 @@ export const EsnetMatrix: React.FC<Props> = ({ options, data, width, height, id 
   const theme = useTheme2();
   try {
     const tryData = parseData(data, options, theme);
-    if (tryData === 'too long') {
+    if (tryData === "too many inputs") {
       console.error('Too many data points.');
       return <svg width={width} height={height}></svg>;
     } else {

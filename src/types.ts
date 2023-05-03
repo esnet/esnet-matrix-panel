@@ -17,4 +17,7 @@ export interface MatrixOptions {
   urlVar2: string;
   urlOther: boolean;
   urlOtherText: string;
+  inputList: boolean;
+  staticRows: string[];
+  staticColumns: string[];
 }
