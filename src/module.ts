@@ -13,8 +13,11 @@ import { EsnetMatrix } from './EsnetMatrix';
  */
 const OptionsCategory = ['Display'];
 const URLCategory = ['Link Options'];
+const RowOptions = ['Row/Column Options'];
+
 const urlBool = (addUrl: boolean) => (config: MatrixOptions) => config.addUrl === addUrl;
 // const eurlOtherBool = (urlOther: boolean) => (config: MatrixOptions) => config.urlOther === urlOther;
+const staticBool = (inputList: boolean) => (config: MatrixOptions) => config.inputList === inputList;
 
 const buildStandardOptions = (): any => {
   const options = [FieldConfigProperty.Unit, FieldConfigProperty.Color];
@@ -26,11 +29,32 @@ plugin.useFieldConfig({
   standardOptions: buildStandardOptions(),
 });
 plugin.setPanelOptions((builder) => {
+  /////////--------- Row and Column options ---------////////////////
+  builder.addBooleanSwitch({
+    path: 'inputList',
+    name: 'Use Static Row/Column Lists',
+    category: RowOptions,
+    defaultValue: false,
+  });
+  builder.addTextInput({
+    path: 'staticRows',
+    name: 'Row Array',
+    description: 'Terms to use as matrix rows (comma separated)',
+    category: RowOptions,
+    showIf: staticBool(true),
+  });
+  builder.addTextInput({
+    path: 'staticColumns',
+    name: 'Column Array',
+    description: 'Terms to use as matrix columns (comma separated)',
+    category: RowOptions,
+    showIf: staticBool(true),
+  });
   builder.addSelect({
     path: 'sourceField',
-    name: 'Source Field',
-    description: 'Select the fields that should be used as the source',
-    category: OptionsCategory,
+    name: 'Rows Field',
+    description: 'Select the field that should be used for the rows',
+    category: RowOptions,
     settings: {
       allowCustomValue: false,
       options: [],
@@ -50,18 +74,11 @@ plugin.setPanelOptions((builder) => {
     },
     // defaultValue: options[0],
   });
-  builder.addTextInput({
-    path: 'sourceText',
-    name: 'Source Text',
-    description: 'The text to be displayed in the tooltip.',
-    category: OptionsCategory,
-    defaultValue: 'From'
-  });
   builder.addSelect({
     path: 'targetField',
-    name: 'Target Field',
-    description: 'Select the field to use as the target ',
-    category: OptionsCategory,
+    name: 'Columns Field',
+    description: 'Select the field to use for the columns',
+    category: RowOptions,
     settings: {
       allowCustomValue: false,
       options: [],
@@ -80,18 +97,11 @@ plugin.setPanelOptions((builder) => {
       },
     },
   });
-    builder.addTextInput({
-      path: 'targetText',
-      name: 'Target Text',
-      description: 'The text to be displayed in the tooltip.',
-      category: OptionsCategory,
-      defaultValue: 'To',
-    });
   builder.addSelect({
     path: 'valueField',
     name: 'Value Field',
     description: 'Select the numeric field used to color the matrix cells.',
-    category: OptionsCategory,
+    category: RowOptions,
     settings: {
       allowCustomValue: false,
       options: [],
@@ -111,13 +121,31 @@ plugin.setPanelOptions((builder) => {
     },
     // defaultValue: options[2],
   });
-    builder.addTextInput({
-      path: 'valueText',
-      name: 'value Text',
-      description: 'The text to be displayed in the tooltip.',
-      category: OptionsCategory,
-      defaultValue: 'Value',
-    });
+
+  ////////------------ General Matrix Options ----------------/////////////
+  builder.addTextInput({
+    path: 'sourceText',
+    name: 'Source Text',
+    description: 'The text to be displayed in the tooltip.',
+    category: OptionsCategory,
+    defaultValue: 'From',
+  });
+
+  builder.addTextInput({
+    path: 'targetText',
+    name: 'Target Text',
+    description: 'The text to be displayed in the tooltip.',
+    category: OptionsCategory,
+    defaultValue: 'To',
+  });
+
+  builder.addTextInput({
+    path: 'valueText',
+    name: 'value Text',
+    description: 'The text to be displayed in the tooltip.',
+    category: OptionsCategory,
+    defaultValue: 'Value',
+  });
 
   builder.addNumberInput({
     path: 'cellSize',
@@ -175,64 +203,64 @@ plugin.setPanelOptions((builder) => {
     },
     defaultValue: 10,
   });
-    builder.addColorPicker({
-      path: 'nullColor',
-      name: 'Null Color',
-      description: 'The color to use when the query returns a null value',
-      category: OptionsCategory,
-      defaultValue: '#E6E6E6',
-    });
-    builder.addColorPicker({
-      path: 'defaultColor',
-      name: 'No Data Color',
-      description: 'The color to use when there is no data returned by the query',
-      category: OptionsCategory,
-      defaultValue: '#E6E6E6',
-    });
-    /////////----------- Link URL options ---------------////////////////
-    builder.addBooleanSwitch({
-      path: 'addUrl',
-      name: 'Add Data Link',
-      category: URLCategory,
-      defaultValue: false,
-    });
-    builder.addTextInput({
-      path: 'url',
-      name: 'Link URL',
-      description: 'URL to go to when square is clicked.',
-      category: URLCategory,
-      showIf: urlBool(true),
-    });
-    builder.addTextInput({
-      path: 'urlVar1',
-      name: 'Variable 1',
-      description: 'The name of the template variable to pass the source label to',
-      category: URLCategory,
-      showIf: urlBool(true),
-    });
-    builder.addTextInput({
-      path: 'urlVar2',
-      name: 'Variable 2',
-      description: 'The name of the template variable to pass the target label to',
-      category: URLCategory,
-      showIf: urlBool(true),
-    });
-    // builder.addBooleanSwitch({
-    //   path: 'urlOther',
-    //   name: 'Append more text',
-    //   description: 'Ex: date',
-    //   category: URLCategory,
-    //   defaultValue: true,
-    //   showIf: urlBool(true),
-    // });
-    // builder.addTextInput({
-    //   path: 'urlOtherText',
-    //   name: 'Text',
-    //   description: 'Other text to append to URL',
-    //   category: URLCategory,
-    //   showIf: urlOtherBool(true),
-    // });
-});
+  builder.addColorPicker({
+    path: 'nullColor',
+    name: 'Null Color',
+    description: 'The color to use when the query returns a null value',
+    category: OptionsCategory,
+    defaultValue: '#E6E6E6',
+  });
+  builder.addColorPicker({
+    path: 'defaultColor',
+    name: 'No Data Color',
+    description: 'The color to use when there is no data returned by the query',
+    category: OptionsCategory,
+    defaultValue: '#E6E6E6',
+  });
 
+  /////////----------- Link URL options ---------------////////////////
+  builder.addBooleanSwitch({
+    path: 'addUrl',
+    name: 'Add Data Link',
+    category: URLCategory,
+    defaultValue: false,
+  });
+  builder.addTextInput({
+    path: 'url',
+    name: 'Link URL',
+    description: 'URL to go to when square is clicked.',
+    category: URLCategory,
+    showIf: urlBool(true),
+  });
+  builder.addTextInput({
+    path: 'urlVar1',
+    name: 'Variable 1',
+    description: 'The name of the template variable to pass the source label to',
+    category: URLCategory,
+    showIf: urlBool(true),
+  });
+  builder.addTextInput({
+    path: 'urlVar2',
+    name: 'Variable 2',
+    description: 'The name of the template variable to pass the target label to',
+    category: URLCategory,
+    showIf: urlBool(true),
+  });
+  // builder.addBooleanSwitch({
+  //   path: 'urlOther',
+  //   name: 'Append more text',
+  //   description: 'Ex: date',
+  //   category: URLCategory,
+  //   defaultValue: true,
+  //   showIf: urlBool(true),
+  // });
+  // builder.addTextInput({
+  //   path: 'urlOtherText',
+  //   name: 'Text',
+  //   description: 'Other text to append to URL',
+  //   category: URLCategory,
+  //   showIf: urlOtherBool(true),
+  // });
+});
 
 // .useFieldConfig({});

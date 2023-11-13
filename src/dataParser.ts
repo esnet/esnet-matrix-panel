@@ -20,15 +20,13 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     console.log('no data');
     return [null, null, null];
   }
-  console.log(series);
-  const frame = new DataFrameView(series);
 
+  const frame = new DataFrameView(series);
   if (frame === null || frame === undefined) {
     // no data, bail
     console.log('no data');
     return [null, null, null];
   }
-
   // set fields
   let sourceKey = options.sourceField;
   let targetKey = options.targetField;
@@ -45,10 +43,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     : data.series.map((series: { fields: any[] }) =>
         series.fields.find((field: { type: string }) => field.type === 'number')
       );
-  // console.log(valueField);
   const valKey = valueField[0].name;
-  console.log(`sourceKey: ${sourceKey}, targetKey: ${targetKey}, value: ${valKey}`);
-  console.log(frame);
 
   // function that maps value to color specified by Standard Options panel.
   // if value is null or was not returned by query, use different value
@@ -64,39 +59,48 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     }
   }
 
-  // find all axis labels
+  // Make Row and Column Lists
   let rows: any[] = [];
   let columns: any[] = [];
-  frame.forEach((row) => {
-    rows.push(String(row[sourceKey]));
-    columns.push(String(row[targetKey]));
-  });
-
-  // Make new arrays from unique set of row and column axis labels
+  // IF static list toggle is set, use input list
+  if (options.inputList) {
+    rows = options.staticRows.split(',');
+    columns = options.staticColumns.split(',');
+  } else {
+    // ELSE  Make new arrays from unique set of row and column axis labels
+    // find all axis labels
+    frame.forEach((row) => {
+      rows.push(String(row[sourceKey]));
+      columns.push(String(row[targetKey]));
+    });
+  }
+  // get unique set
   const rowNames = Array.from(new Set(rows)).sort();
   const colNames = Array.from(new Set(columns)).sort();
-  console.log(rowNames);
-  console.log(colNames);
-  if (colNames.length > 200 || rowNames.length > 200) {
-    return 'too long';
+
+  const numSquaresInMatrix = rowNames.length * colNames.length;
+  if (numSquaresInMatrix > 50000) {
+    return 'too many inputs';
   }
   // create data matrix
-  var dataMatrix: any[][] = [];
+  let dataMatrix: any[][] = [];
   for (let i = 0; i < rowNames.length; i++) {
     dataMatrix.push(new Array(colNames.length).fill(-1));
   }
-  console.log(dataMatrix);
+
   frame.forEach((row) => {
     let r = rowNames.indexOf(String(row[sourceKey]));
     let c = colNames.indexOf(String(row[targetKey]));
     let v = row[valKey];
-    dataMatrix[r][c] = {
-      row: row[sourceKey],
-      col: row[targetKey],
-      val: v,
-      color: colorMap(v),
-      display: valueField[0].display(v),
-    };
+    if (r > -1 && c > -1) {
+      dataMatrix[r][c] = {
+        row: row[sourceKey],
+        col: row[targetKey],
+        val: v,
+        color: colorMap(v),
+        display: valueField[0].display(v),
+      };
+    }
   });
   return [rowNames, colNames, dataMatrix];
 }

@@ -15,8 +15,8 @@
       "large": "img/logo.svg"
     },
     "links": [
-      {"name": "Website", "url": "https://github.com/esnet/grafana-esnet-matrix-panel"},
-      {"name": "License", "url": "https://github.com/esnet/grafana-esnet-matrix-panel/blob/master/LICENSE"}
+      {"name": "Website", "url": "https://github.com/esnet/esnet-matrix-panel"},
+      {"name": "License", "url": "https://github.com/esnet/esnet-matrix-panel/blob/master/LICENSE"}
     ],
     "screenshots": [
       {
@@ -33,7 +33,7 @@
   },
 
   "dependencies": {
-    "grafanaDependency": ">=8.0.0",
+    "grafanaDependency": ">=8.3.0",
     "plugins": []
   }
 }
