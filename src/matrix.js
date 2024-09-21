@@ -77,7 +77,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme)
     .style('box-shadow', '3px 3px 4px lightgray')
     .style('padding', '5px')
     .style('z-index','500')
-    .style('position','relative')
+    .style('position','absolute')
     .style('width','fit-content')
     .style('opacity', 0);
 
