@@ -70,12 +70,15 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme)
   var div = d3
     .select('body')
     .append('div')
-    .attr('class', 'tooltip')
+    .attr('class', 'matrix-tooltip')
     .style('background-color', theme.colors.background.primary)
     .style('font-family', theme.typography.fontFamily.sansSerif)
     .style('font-color', theme.colors.text.primary)
-    .style('box-shadow', '3px 3px 6px lightgray')
+    .style('box-shadow', '3px 3px 4px lightgray')
     .style('padding', '5px')
+    .style('z-index','500')
+    .style('position','absolute')
+    .style('width','fit-content')
     .style('opacity', 0);
 
   // append the svg object to the body of the page
