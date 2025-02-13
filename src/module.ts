@@ -18,9 +18,10 @@ const RowOptions = ['Row/Column Options'];
 const urlBool = (addUrl: boolean) => (config: MatrixOptions) => config.addUrl === addUrl;
 // const eurlOtherBool = (urlOther: boolean) => (config: MatrixOptions) => config.urlOther === urlOther;
 const staticBool = (inputList: boolean) => (config: MatrixOptions) => config.inputList === inputList;
+const legendBool = (showLegend: boolean) => (config: MatrixOptions) => config.showLegend === showLegend;
 
 const buildStandardOptions = (): any => {
-  const options = [FieldConfigProperty.Unit, FieldConfigProperty.Color];
+  const options = [FieldConfigProperty.Unit, FieldConfigProperty.Color, FieldConfigProperty.Thresholds];
   return standardOptionsCompat(options);
 };
 
@@ -123,6 +124,26 @@ plugin.setPanelOptions((builder) => {
   });
 
   ////////------------ General Matrix Options ----------------/////////////
+  builder.addBooleanSwitch({
+    path: 'showLegend',
+    name: 'Show Legend',
+    category: OptionsCategory,
+    defaultValue: false,
+  });
+  builder.addSelect({
+    path: 'legendType',
+    name: 'Legend Type',
+    category: OptionsCategory,
+    showIf: legendBool(true),
+    defaultValue: 'range',
+    settings: {
+      allowCustomValue: false,
+      options: [
+        { value: 'categorical', label: 'categorical' },
+        { value: 'range', label: 'range' },
+      ],
+    },
+  });
   builder.addTextInput({
     path: 'sourceText',
     name: 'Source Text',
