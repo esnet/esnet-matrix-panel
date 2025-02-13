@@ -12,7 +12,7 @@ import { useTheme2 } from '@grafana/ui';
  * @param {string} val The data series that will act as the value
  * @param {GrafanaTheme} theme
  */
-function createViz(elem, id, height, rowNames, colNames, matrix, options, theme) {
+function createViz(elem, id, height, rowNames, colNames, matrix, options, theme, legend) {
   const srcText = options.sourceText,
     targetText = options.targetText,
     valText = options.valueText,
@@ -76,9 +76,9 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme)
     .style('font-color', theme.colors.text.primary)
     .style('box-shadow', '3px 3px 4px lightgray')
     .style('padding', '5px')
-    .style('z-index','500')
-    .style('position','absolute')
-    .style('width','fit-content')
+    .style('z-index', '500')
+    .style('position', 'absolute')
+    .style('width', 'fit-content')
     .style('opacity', 0);
 
   // append the svg object to the body of the page
@@ -132,7 +132,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme)
       div.style('opacity', 0).style('left', '0px').style('top', '0px');
     });
 
-  //build the matrix
+  //build the matrix /////////////////////////////////////////
 
   //use d3's local stuff to record where we are in the outer loop
   var outer = d3.local();
@@ -185,7 +185,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme)
       return str;
     })
     .attr('fill', (d) => {
-      if(d.color) {
+      if (d.color) {
         return d.color;
       } else {
         return defaultColor;
@@ -231,6 +231,88 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme)
         .attr('height', y.bandwidth());
       div.style('opacity', 0).style('left', '0px').style('top', '0px');
     });
+
+  ////// LEGEND ////////////
+  if (options.showLegend) {
+    var legendClass = `legend-${id}`;
+
+    var div = d3
+      .select(elem)
+      .append('div')
+      .attr('class', 'matrix-legend')
+      .attr('width', 'auto')
+      .attr('style', 'height: 70px;')
+      .append('svg')
+      .attr('id', legendClass);
+
+    if (options.legendType == 'range') {
+      var svg = d3.select(`#${legendClass}`);
+      svg
+        .append('g')
+        .selectAll('legendBars')
+        .data(legend)
+        .enter()
+        .append('rect')
+        .attr('class', 'legend-bar')
+        .attr('width', 10)
+        .attr('height', 10)
+        .attr('fill', function (d) {
+          return d.color;
+        })
+        .attr('x', function (d, i) {
+          return 25 + i * 10;
+        })
+        .attr('y', 20);
+      svg
+        .append('g')
+        .selectAll('legendLabels')
+        .data(legend)
+        .enter()
+        .append('text')
+        .attr('x', function (d, i) {
+          return 20 + i * 10;
+        })
+        .attr('y', 50)
+        .text(function (d, i) {
+          if ((i == 0) | (i == legend.length - 1)) {
+            return d.label;
+          } else {
+            return;
+          }
+        })
+        .attr('fill', theme.colors.text.primary);
+    } else {
+      // categorical
+      var svg = d3.select(`#${legendClass}`);
+      svg
+        .append('g')
+        .selectAll('legendCircles')
+        .data(legend)
+        .enter()
+        .append('circle')
+        .attr('class', 'legend-circle')
+        .attr('r', 10)
+        .attr('fill', function (d) {
+          return d.color;
+        })
+        .attr('cx', function (d, i) {
+          return 25 + i * 75;
+        })
+        .attr('cy', 20);
+      svg
+        .append('g')
+        .selectAll('legendLabels')
+        .data(legend)
+        .enter()
+        .append('text')
+        .attr('x', function (d, i) {
+          return 15 + i * 75;
+        })
+        .attr('y', 50)
+        .text(function (d) { return d.label })
+        .attr('fill', theme.colors.text.primary);
+    }
+  }
 }
 
 function truncateLabel(text, width) {
@@ -253,10 +335,10 @@ function truncateLabel(text, width) {
  * @param {number} height Height of panel
  * @return {*} A d3 callback
  */
-function matrix(rowNames, colNames, matrix, id, height, options) {
+function matrix(rowNames, colNames, matrix, id, height, options, legend) {
   const theme = useTheme2();
   const ref = useD3((svg) => {
-    createViz(svg, id, height, rowNames, colNames, matrix, options, theme);
+    createViz(svg, id, height, rowNames, colNames, matrix, options, theme, legend);
   });
   return ref;
 }

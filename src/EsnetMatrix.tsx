@@ -6,35 +6,31 @@ import { useTheme2, CustomScrollbar } from '@grafana/ui';
 // import { useTheme2 } from '@grafana/ui';
 
 import * as Matrix from './matrix.js';
+// import * as Legend from 'matrixLegend.js';
 
 interface Props extends PanelProps<MatrixOptions> {}
 
 export const EsnetMatrix: React.FC<Props> = ({ options, data, width, height, id }) => {
-  let parsedData: any[] = [];
   const theme = useTheme2();
+  const parsedData = parseData(data, options, theme);
   try {
-    const tryData = parseData(data, options, theme);
-    if (tryData === "too many inputs") {
+    if (parsedData.data === 'too many inputs') {
       console.error('Too many data points.');
       return <svg width={width} height={height}></svg>;
-    } else {
-      parsedData = tryData;
     }
   } catch (error) {
     console.error('data error: ', error);
   }
-  const rowNames = parsedData[0];
-  const colNames = parsedData[1];
-  const matrix = parsedData[2];
 
-  if (matrix == null) {
+  if (parsedData.data == null) {
     return <div>No Data</div>;
   }
   // const divStyle = {
   //   width: 'auto',
   // };
 
-  const ref = Matrix.matrix(rowNames, colNames, matrix, id, height, options);
+  const ref = Matrix.matrix(parsedData.rows, parsedData.columns, parsedData.data, id, height, options, parsedData.legend);
+
   return (
     <CustomScrollbar autoHeightMin="100%">
       <div ref={ref}></div>

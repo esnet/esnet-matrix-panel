@@ -4,5 +4,6 @@ export function matrix(
   matrix: any,
   id: number,
   height: number,
-  options: any
+  options: any,
+  legend: any
 ): LegacyRef<SVGSVGElement> | undefined;

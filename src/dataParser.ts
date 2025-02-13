@@ -1,5 +1,7 @@
 import { DataFrameView } from '@grafana/data';
 
+// import { legend } from 'matrixLegend';
+
 /**
  * this function creates an adjacency matrix to be consumed by the chord
  * function returns the matrix + forward and reverse lookup Maps to go from
@@ -18,14 +20,14 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   if (series === null || series === undefined) {
     // no data, bail
     console.log('no data');
-    return [null, null, null];
+    return { rows: null, columns: null, data: null, legend: null };
   }
 
   const frame = new DataFrameView(series);
   if (frame === null || frame === undefined) {
     // no data, bail
     console.log('no data');
-    return [null, null, null];
+    return { rows: null, columns: null, data: null, legend: null };
   }
   // set fields
   let sourceKey = options.sourceField;
@@ -62,6 +64,8 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   // Make Row and Column Lists
   let rows: any[] = [];
   let columns: any[] = [];
+  // let uniqueVals: any[] = [];
+
   // IF static list toggle is set, use input list
   if (options.inputList) {
     rows = options.staticRows.split(',');
@@ -80,14 +84,32 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
 
   const numSquaresInMatrix = rowNames.length * colNames.length;
   if (numSquaresInMatrix > 50000) {
-    return 'too many inputs';
+    return { rows: null, columns: null, data: 'too many inputs', legend: null };
   }
+
+  //playground DELETE LATER ////////////////
+  // let tempvals = frame.fields[valKey];
+  // let min = 0;
+  // let max = 0;
+  // if (tempvals.state) {
+  //   if(tempvals.state.range) {
+  //     if(tempvals.state.range.min) {
+  //     min = tempvals.state.range.min;
+  //     }
+  //     if (tempvals.state.range.max) {
+  //       max = tempvals.state.range.max;
+  //     }
+  //   }
+  // }
+  // console.log(`min: ${min} max: ${max}`);
+
+  ////////////////////////////
+
   // create data matrix
   let dataMatrix: any[][] = [];
   for (let i = 0; i < rowNames.length; i++) {
     dataMatrix.push(new Array(colNames.length).fill(-1));
   }
-
   frame.forEach((row) => {
     let r = rowNames.indexOf(String(row[sourceKey]));
     let c = colNames.indexOf(String(row[targetKey]));
@@ -102,5 +124,44 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
       };
     }
   });
-  return [rowNames, colNames, dataMatrix];
+
+  // parse data for legend
+  let legendData: any[] = [];
+  if (options.showLegend) {
+    // let allVals = frame.fields[valKey].values;
+    let tempValues: any[] = [];
+    if (options.legendType == 'range') { 
+      //get min & max, steps
+      let allValues: number[] = Object.values(frame.fields[valKey].values);
+      let thisMin = Math.min(...allValues);
+      let thisMax = Math.max(...allValues);
+      let step = (thisMax - thisMin) / 10;
+      // push 10 steps to use for legend
+      tempValues = [];
+      for(let i = 0; i <= 10; i++) {
+        tempValues.push(thisMin + (i*step));
+      }
+    } else {
+      // get unique categories
+      let allValues: string[] = Object.values(frame.fields[valKey].values);
+      let unique = new Set(allValues);
+      tempValues = [...unique];
+    }
+    tempValues.forEach((val) => {
+      // find display values, unit & color for each
+      // store in array
+      let text = valueField[0].display(val).text;
+      if (valueField[0].display(val).suffix) {
+        text = text + ` ${valueField[0].display(val).suffix}`;
+      }
+        legendData.push({
+          label: text,
+          color: colorMap(val),
+        });
+    });
+  }
+  console.log(legendData);
+
+  var dataObject = { rows: rowNames, columns: colNames, data: dataMatrix, legend: legendData };
+  return dataObject;
 }

@@ -20,4 +20,6 @@ export interface MatrixOptions {
   inputList: boolean;
   staticRows: string[];
   staticColumns: string[];
+  showLegend: boolean;
+  legendType: string;
 }
