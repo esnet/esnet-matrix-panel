@@ -16,7 +16,7 @@ interface Props extends PanelProps<MatrixOptions> {
 export const EsnetMatrix: React.FC<Props> = ({ options, data, width, height, id }) => {
   // console.log(data);
   const theme = useTheme2();
-  console.log(options);
+  // console.log(options);
   const parsedData = parseData(data, options, theme);
   try {
     if (parsedData.data === 'too many inputs') {
