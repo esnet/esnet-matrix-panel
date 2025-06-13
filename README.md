@@ -7,6 +7,8 @@ Note: This is NOT inteded to use with time series data or large data sets.  It a
 
 ## Options
 ### Display
+**Show Legend:** Adds legend to bottom of panel.
+**Legend Type:** There are two types.  Categorical will produce a legend with distinct colors for each unique detected value.  Range will generate a bar with the detected range of colors & values.
 **Source Field:** The field you want to use on the vertical axis.
 **Target Field:** The field you want to use on the horizontal axis.
 **Value Field:** The metric you want to use to color the boxes.
