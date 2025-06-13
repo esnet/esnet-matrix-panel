@@ -9,3 +9,6 @@ Allow for up to 200 UNIQUE rows and columns
 Print "No Data" instead of throwing error if dataframe is empty
 ## 1.0.9
 update grafana tooling to webpack
+
+## 1.2.0
+Updates to work with Grafana 12

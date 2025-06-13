@@ -67,7 +67,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   //and be moved into place on hover
   //on mouse out the div will move back to 0,0 so
   //as not to be covering other boxes we want to hover
-  var div = d3
+  var tooltip = d3
     .select('body')
     .append('div')
     .attr('class', 'matrix-tooltip')
@@ -112,24 +112,23 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     .attr('fill', theme.colors.text.primary)
     .call(truncateLabel, maxTxtLength)
     .on('mouseover', function (event, d) {
-      div.html(d);
+      tooltip.html(d);
 
       //to center the tooltip appropriately we need to find the rendered width of both the
       //the box they hovered and of the tooltip with the text in it.
-      var rect = event.target.getBoundingClientRect();
-      var divSize = div.node().getBoundingClientRect();
+      // var rect = event.target.getBoundingClientRect();
+      var divSize = tooltip.node().getBoundingClientRect();
 
-      //place the tooltip along the X axis so that it's middle lines up with the
-      //middle of the box they hovered
-      div
-        .style('left', rect.left + rect.width - divSize.width / 2 + 'px')
+      // tooltip for label
+      tooltip
+        .style('left', event.pageX - divSize.width + 'px')
         //place the tooltip 5 pixels above the box they hovered
-        .style('top', rect.top - divSize.height - 5 + 'px')
+        .style('top', event.pageY - divSize.height - 5 + 'px')
         .style('opacity', 1);
     })
     .on('mouseout', function (d, i) {
       d3.select(this).attr('opacity', '1');
-      div.style('opacity', 0).style('left', '0px').style('top', '0px');
+      tooltip.style('opacity', 0).style('left', '0px').style('top', '0px');
     });
 
   //build the matrix /////////////////////////////////////////
@@ -191,6 +190,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
         return defaultColor;
       }
     })
+    // the tooltip for boxes
     .on('mouseover', function (event, d) {
       if (d != -1) {
         //turn down the opacity slightly to show the hover
@@ -202,7 +202,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
 
         //like the mouseover above go ahead and render the text so we can calculate its size
         //and position correctly.
-        div.html(() => {
+        tooltip.html(() => {
           var thisDisplay = d.display;
           var text = `<p><b>${srcText}:</b> ${d.row}
             <br>
@@ -213,23 +213,28 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
           return text;
         });
 
-        var rect = event.target.getBoundingClientRect();
-        var divSize = div.node().getBoundingClientRect();
-
-        div
-          .style('left', rect.left + rect.width - divSize.width / 2 + 'px')
-          .style('top', rect.top - divSize.height - 5 + 'px')
+        tooltip
+          // .style('left', rect.left + rect.width - divSize.width / 2 + 'px')
+          // .style('top', rect.top - divSize.height - 5 + 'px')
+          .style('left', event.pageX + 5 + 'px')
+          .style('top', event.pageY + 5 + 'px')
           .style('opacity', 1);
       }
     })
     .on('mouseout', function (d, i) {
-      //reset the opacity and move the div out of the way. If we dont move it it will prevent hovering over other boxes.
+      //reset the opacity and move the tooltip out of the way. If we dont move it it will prevent hovering over other boxes.
       d3.select(this)
         // .attr('opacity', '1')
         .attr('transform', 'translate(0, 0)')
         .attr('width', x.bandwidth())
         .attr('height', y.bandwidth());
-      div.style('opacity', 0).style('left', '0px').style('top', '0px');
+      tooltip.style('opacity', 0).style('left', '0px').style('top', '0px');
+    })
+    .on('click', function (d) {
+      if(linkURL) {
+        // d3.select(this).remove();
+        tooltip.remove();
+      }
     });
 
   ////// LEGEND ////////////
