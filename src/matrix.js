@@ -116,10 +116,8 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme)
 
       //to center the tooltip appropriately we need to find the rendered width of both the
       //the box they hovered and of the tooltip with the text in it.
-      var rect = event.target.getBoundingClientRect();
+      // var rect = event.target.getBoundingClientRect();
       var divSize = tooltip.node().getBoundingClientRect();
-      console.log(event);
-      // console.log(divSize);
 
       // tooltip for label
       tooltip
@@ -231,6 +229,12 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme)
         .attr('width', x.bandwidth())
         .attr('height', y.bandwidth());
       tooltip.style('opacity', 0).style('left', '0px').style('top', '0px');
+    })
+    .on('click', function (d) {
+      if(linkURL) {
+        // d3.select(this).remove();
+        tooltip.remove();
+      }
     });
 }
 
