@@ -38,6 +38,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   if (!targetKey) {
     targetKey = 1;
   }
+
   // assign valueField to the specified field or use the first number field by default
   const val = options.valueField;
   const valueField = val
@@ -105,6 +106,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
 
   ////////////////////////////
 
+  // console.log(options);
   // create data matrix
   let dataMatrix: any[][] = [];
   for (let i = 0; i < rowNames.length; i++) {
@@ -128,9 +130,10 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   // parse data for legend
   let legendData: any[] = [];
   if (options.showLegend) {
+    
     // let allVals = frame.fields[valKey].values;
     let tempValues: any[] = [];
-    if (options.legendType == 'range') { 
+    if (options.legendType === 'range') { 
       //get min & max, steps
       let allValues: number[] = Object.values(frame.fields[valKey].values);
       let thisMin = Math.min(...allValues);
@@ -160,8 +163,8 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
         });
     });
   }
-  console.log(legendData);
+  // console.log(legendData);
 
-  var dataObject = { rows: rowNames, columns: colNames, data: dataMatrix, legend: legendData };
+  let dataObject = { rows: rowNames, columns: colNames, data: dataMatrix, legend: legendData };
   return dataObject;
 }

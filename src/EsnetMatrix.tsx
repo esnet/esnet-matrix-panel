@@ -8,10 +8,15 @@ import { useTheme2, CustomScrollbar } from '@grafana/ui';
 import * as Matrix from './matrix.js';
 // import * as Legend from 'matrixLegend.js';
 
-interface Props extends PanelProps<MatrixOptions> {}
+interface Props extends PanelProps<MatrixOptions> {
+  fieldConfig: any;
+  options: MatrixOptions;
+}
 
 export const EsnetMatrix: React.FC<Props> = ({ options, data, width, height, id }) => {
+  // console.log(data);
   const theme = useTheme2();
+  console.log(options);
   const parsedData = parseData(data, options, theme);
   try {
     if (parsedData.data === 'too many inputs') {

@@ -24,6 +24,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     urlVar1 = options.urlVar1,
     urlVar2 = options.urlVar2,
     defaultColor = theme.visualization.getColorByName(options.defaultColor);
+
   // urlOther = options.urlOther,
   // urlOtherText = options.urlOtherText;
 
@@ -250,6 +251,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
       .append('svg')
       .attr('id', legendClass);
 
+////////////// range - bar //////////////////////
     if (options.legendType == 'range') {
       var svg = d3.select(`#${legendClass}`);
       svg
@@ -287,7 +289,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
         })
         .attr('fill', theme.colors.text.primary);
     } else {
-      // categorical
+/////////// categorical - circles ////////////////////////////
       var svg = d3.select(`#${legendClass}`);
       svg
         .append('g')

@@ -22,4 +22,5 @@ export interface MatrixOptions {
   staticColumns: string[];
   showLegend: boolean;
   legendType: string;
+  thresholds: any[];
 }

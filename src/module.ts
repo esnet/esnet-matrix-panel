@@ -1,7 +1,8 @@
 import { FieldOverrideContext, getFieldDisplayName, PanelPlugin, FieldConfigProperty } from '@grafana/data';
-import { standardOptionsCompat } from 'grafana-plugin-support';
+// import { standardOptionsCompat } from 'grafana-plugin-support';
 import { MatrixOptions } from './types';
 import { EsnetMatrix } from './EsnetMatrix';
+// import { FieldConfig } from './panelcfg.gen';
 
 /**
  * Grafana panel plugin main module
@@ -20,15 +21,28 @@ const urlBool = (addUrl: boolean) => (config: MatrixOptions) => config.addUrl ==
 const staticBool = (inputList: boolean) => (config: MatrixOptions) => config.inputList === inputList;
 const legendBool = (showLegend: boolean) => (config: MatrixOptions) => config.showLegend === showLegend;
 
-const buildStandardOptions = (): any => {
-  const options = [FieldConfigProperty.Unit, FieldConfigProperty.Color, FieldConfigProperty.Thresholds];
-  return standardOptionsCompat(options);
-};
+// const buildStandardOptions = (): any => {
+//   const options = [FieldConfigProperty.Unit, FieldConfigProperty.Color, FieldConfigProperty.Thresholds];
+//   return standardOptionsCompat(options);
+// };
 
 export const plugin = new PanelPlugin<MatrixOptions>(EsnetMatrix);
+
 plugin.useFieldConfig({
-  standardOptions: buildStandardOptions(),
+  standardOptions: {
+    [FieldConfigProperty.Thresholds]: {},
+    [FieldConfigProperty.Color]: {
+      settings: {
+        preferThresholdMode: true,
+      }
+    }
+  },
+  disableStandardOptions: [
+    FieldConfigProperty.NoValue,
+    FieldConfigProperty.Links,
+  ]
 });
+
 plugin.setPanelOptions((builder) => {
   /////////--------- Row and Column options ---------////////////////
   builder.addBooleanSwitch({
@@ -283,5 +297,3 @@ plugin.setPanelOptions((builder) => {
   //   showIf: urlOtherBool(true),
   // });
 });
-
-// .useFieldConfig({});
