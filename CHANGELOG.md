@@ -11,4 +11,6 @@ Print "No Data" instead of throwing error if dataframe is empty
 update grafana tooling to webpack
 
 ## 1.2.0
-Updates to work with Grafana 12
+- Fixed tooltip to work with Grafana 12
+- Fixed tooltip on link click bug
+- Added legend feature.  2 options categorical or range
