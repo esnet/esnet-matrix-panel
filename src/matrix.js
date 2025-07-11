@@ -246,8 +246,6 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
       .select(elem)
       .append('div')
       .attr('class', 'matrix-legend')
-      .attr('width', 'auto')
-      .attr('style', 'height: 70px;')
       .append('svg')
       .attr('id', legendClass);
 
@@ -255,6 +253,13 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     if (options.legendType == 'range') {
       var svg = d3.select(`#${legendClass}`);
       svg
+        // legend bar starts at x=25, legend squares are 10x10, allow 9px per label character
+        .attr(
+          "width",
+          25 + ((legend.length - 1) * 10) + (legend[legend.length - 1].label.length * 9),
+        )
+        // legend label starts at y=50, allow 16px per label character
+        .attr('height', 50 + 16)
         .append('g')
         .selectAll('legendBars')
         .data(legend)
@@ -292,6 +297,14 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
 /////////// categorical - circles ////////////////////////////
       var svg = d3.select(`#${legendClass}`);
       svg
+        // legend bar starts at x=25, legend circles are drawn every 75px and have a 20px diameter,
+        // allow 9px per label character
+        .attr(
+          "width",
+          25 + ((legend.length - 1) * 75) + 20 + (legend[legend.length - 1].label.length * 9),
+        )
+        // legend label starts at y=50, allow 16px per label character
+        .attr('height', 50 + 16)
         .append('g')
         .selectAll('legendCircles')
         .data(legend)
