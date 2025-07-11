@@ -47,8 +47,8 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   //txtLength is passed in. but names may be much smaller than this value.
   //since this informs the margin we want to set it to whichever is longer
   //this prevents a huge white space if txtlength is considerably bigger
-  //than the longest name
-  const maxTxtLength = longest.length < txtLength ? longest.length : txtLength;
+  //than the longest name. add 3 characters to account for ellipsis (...)
+  const maxTxtLength = longest.length < txtLength ? longest.length : txtLength + 3;
 
   //the user settable value cellsize controls the size of the svg.
   // var size = names.length * cellSize;
