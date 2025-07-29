@@ -21,7 +21,8 @@ export const EsnetMatrix: React.FC<Props> = ({ options, data, width, height, id 
   try {
     if (parsedData.data === 'too many inputs') {
       console.error('Too many data points.');
-      return <svg width={width} height={height}></svg>;
+      // return <svg width={width} height={height}></svg>;
+      return <div>Too many data points!  Try adding limits to your query.</div>;
     }
   } catch (error) {
     console.error('data error: ', error);
