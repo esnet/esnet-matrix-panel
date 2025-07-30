@@ -30,7 +30,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
 
   // do a bit of work to setup the visual layout of the wiget --------
   if (elem === null) {
-    console.log('bailing after failing to find parent element');
+    console.error('bailing after failing to find parent element');
     return;
   }
   while (elem !== undefined && elem.firstChild) {
@@ -62,25 +62,6 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     width = colNames.length * cellSize,
     height = rowNames.length * cellSize;
 
-  //we'll use this div as our tooltip.
-  //the div will be invisible except when in use
-  //the div will start at page coordinates 0,0
-  //and be moved into place on hover
-  //on mouse out the div will move back to 0,0 so
-  //as not to be covering other boxes we want to hover
-  var tooltip = d3
-    .select('body')
-    .append('div')
-    .attr('class', 'matrix-tooltip')
-    .style('background-color', theme.colors.background.primary)
-    .style('font-family', theme.typography.fontFamily.sansSerif)
-    .style('font-color', theme.colors.text.primary)
-    .style('box-shadow', '3px 3px 4px lightgray')
-    .style('padding', '5px')
-    .style('z-index', '500')
-    .style('position', 'absolute')
-    .style('width', 'fit-content')
-    .style('opacity', 0);
 
   // append the svg object to the body of the page
   var svgClass = `svg-${id}`;
@@ -113,23 +94,30 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     .attr('fill', theme.colors.text.primary)
     .call(truncateLabel, maxTxtLength)
     .on('mouseover', function (event, d) {
-      tooltip.html(d);
-
-      //to center the tooltip appropriately we need to find the rendered width of both the
-      //the box they hovered and of the tooltip with the text in it.
-      // var rect = event.target.getBoundingClientRect();
-      var divSize = tooltip.node().getBoundingClientRect();
-
-      // tooltip for label
-      tooltip
-        .style('left', event.pageX - divSize.width + 'px')
+      // var divSize = tooltip.node().getBoundingClientRect();  
+      let tooltip = d3
+        .select('body')
+        .append('div')
+        .attr('class', `matrix-tooltip-${id}`)
+        .html(d)
+        .style('background-color', theme.colors.background.primary)
+        .style('font-family', theme.typography.fontFamily.sansSerif)
+        .style('font-color', theme.colors.text.primary)
+        .style('box-shadow', '3px 3px 4px lightgray')
+        .style('padding', '5px')
+        .style('z-index', '500')
+        .style('position', 'absolute')
+        .style('width', 'fit-content')
+        .style('left', event.pageX + 'px')
+        // .style('left', event.pageX - divSize.width + 'px')
         //place the tooltip 5 pixels above the box they hovered
-        .style('top', event.pageY - divSize.height - 5 + 'px')
-        .style('opacity', 1);
+        .style('top', event.pageY - 5 + 'px')
+        // .style('top', event.pageY - divSize.height - 5 + 'px')
+        .style('opacity', 1);       
     })
     .on('mouseout', function (d, i) {
       d3.select(this).attr('opacity', '1');
-      tooltip.style('opacity', 0).style('left', '0px').style('top', '0px');
+      d3.selectAll(`.matrix-tooltip-${id}`).remove();
     });
 
   //build the matrix /////////////////////////////////////////
@@ -201,25 +189,31 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
           .attr('height', y.bandwidth() + 5)
           .attr('transform', 'translate(-1, -1)');
 
-        //like the mouseover above go ahead and render the text so we can calculate its size
-        //and position correctly.
-        tooltip.html(() => {
-          var thisDisplay = d.display;
-          var text = `<p><b>${srcText}:</b> ${d.row}
-            <br>
-            <b>${targetText}:</b> ${d.col}
-            <br>
-            <b>${valText}:</b> ${thisDisplay.text} ${thisDisplay.suffix ? thisDisplay.suffix : ''}
-            </p>`;
-          return text;
-        });
-
-        tooltip
-          // .style('left', rect.left + rect.width - divSize.width / 2 + 'px')
-          // .style('top', rect.top - divSize.height - 5 + 'px')
+        let tooltip = d3
+          .select('body')
+          .append('div')
+          .attr('class', `matrix-tooltip-${id}`)
+          .html(() => {
+            var thisDisplay = d.display;
+            var text = `<p><b>${srcText}:</b> ${d.row}
+              <br>
+              <b>${targetText}:</b> ${d.col}
+              <br>
+              <b>${valText}:</b> ${thisDisplay.text} ${thisDisplay.suffix ? thisDisplay.suffix : ''}
+              </p>`;
+            return text;
+          })
+          .style('background-color', theme.colors.background.primary)
+          .style('font-family', theme.typography.fontFamily.sansSerif)
+          .style('font-color', theme.colors.text.primary)
+          .style('box-shadow', '3px 3px 4px lightgray')
+          .style('padding', '5px')
+          .style('z-index', '500')
+          .style('position', 'absolute')
+          .style('width', 'fit-content')
           .style('left', event.pageX + 5 + 'px')
           .style('top', event.pageY + 5 + 'px')
-          .style('opacity', 1);
+          .style('opacity', 1);       
       }
     })
     .on('mouseout', function (d, i) {
@@ -229,12 +223,11 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
         .attr('transform', 'translate(0, 0)')
         .attr('width', x.bandwidth())
         .attr('height', y.bandwidth());
-      tooltip.style('opacity', 0).style('left', '0px').style('top', '0px');
+      d3.selectAll(`.matrix-tooltip-${id}`).transition(50).remove();
     })
     .on('click', function (d) {
       if(linkURL) {
-        // d3.select(this).remove();
-        tooltip.remove();
+        d3.selectAll(`.matrix-tooltip-${id}`).remove();
       }
     });
 
