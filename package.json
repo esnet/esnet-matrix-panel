@@ -1,6 +1,6 @@
 {
   "name": "esnet-matrix-panel",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "ESnet Matrix Panel",
   "scripts": {
     "build": "webpack -c ./.config/webpack/webpack.config.ts --env production",
