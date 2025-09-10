@@ -33,10 +33,6 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     console.error('bailing after failing to find parent element');
     return;
   }
-  while (elem !== undefined && elem.firstChild) {
-    // clear out old contents
-    elem.removeChild(elem.lastChild);
-  }
 
   //find the length of the longest name. this will inform the margin and name truncation
   var allNames = rowNames.concat(colNames);
@@ -62,6 +58,10 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     width = colNames.length * cellSize,
     height = rowNames.length * cellSize;
 
+  if (elem !== undefined) {
+    // clear out old contents
+    elem.replaceChildren();
+  }
 
   // append the svg object to the body of the page
   var svgClass = `svg-${id}`;
