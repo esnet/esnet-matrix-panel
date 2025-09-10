@@ -98,21 +98,30 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     .call(truncateLabel, maxTxtLength)
     .on('mouseover', function (event, d) {
       // var divSize = tooltip.node().getBoundingClientRect();  
-      let tooltip = d3
-        .select('body')
-        .append('div')
-        .attr('class', `${styles.tooltip} matrix-tooltip-${id}`)
+      const tooltip = getTooltip(id, styles.tooltip);
+      tooltip
         .html(d)
         .style('left', event.pageX + 'px')
         // .style('left', event.pageX - divSize.width + 'px')
         //place the tooltip 5 pixels above the box they hovered
         .style('top', event.pageY - 5 + 'px')
         // .style('top', event.pageY - divSize.height - 5 + 'px')
-        .style('opacity', 1);       
+        .transition()
+        .duration(150)
+        .style('opacity', 1);
     })
-    .on('mouseout', function (d, i) {
+    .on('mouseout', function () {
       d3.select(this).attr('opacity', '1');
-      d3.selectAll(`.matrix-tooltip-${id}`).remove();
+
+      const tooltip = getTooltip(id, styles.tooltip);
+      tooltip
+        .transition()
+        .delay(100)
+        .duration(150)
+        .style('opacity', 0)
+        .on('end', () => {
+          tooltip.remove();
+        });
     });
 
   //build the matrix /////////////////////////////////////////
@@ -184,10 +193,8 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
           .attr('height', y.bandwidth() + 5)
           .attr('transform', 'translate(-1, -1)');
 
-        let tooltip = d3
-          .select('body')
-          .append('div')
-          .attr('class', `${styles.tooltip} matrix-tooltip-${id}`)
+        const tooltip = getTooltip(id, styles.tooltip);
+        tooltip
           .html(() => {
             var thisDisplay = d.display;
             var text = `<div class="${styles.tooltipTable}">
@@ -214,17 +221,28 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
           })
           .style('left', event.pageX + 5 + 'px')
           .style('top', event.pageY + 5 + 'px')
-          .style('opacity', 1);       
+          .transition()
+          .duration(150)
+          .style('opacity', 1);
       }
     })
-    .on('mouseout', function (d, i) {
+    .on('mouseout', function () {
       //reset the opacity and move the tooltip out of the way. If we dont move it it will prevent hovering over other boxes.
       d3.select(this)
         // .attr('opacity', '1')
         .attr('transform', 'translate(0, 0)')
         .attr('width', x.bandwidth())
         .attr('height', y.bandwidth());
-      d3.selectAll(`.matrix-tooltip-${id}`).transition(50).remove();
+
+      const tooltip = getTooltip(id, styles.tooltip);
+      tooltip
+        .transition()
+        .delay(100)
+        .duration(150)
+        .style('opacity', 0)
+        .on('end', () => {
+          tooltip.remove();
+        });
     })
     .on('click', function (d) {
       if(linkURL) {
@@ -324,6 +342,24 @@ function truncateLabel(text, width) {
     }
     d3.select(this).text(label);
   });
+}
+
+/** Create tooltip element for the matrix diagram.
+ * @param {number} id The panel id
+ * @param {string} tooltipClass CSS class to use for tooltip
+ * @return {Selection} A d3 div selection
+ */
+function getTooltip(id, tooltipClass) {
+  let tooltip = d3.select(`.matrix-tooltip-${id}`);
+  if (tooltip.empty()) {
+    tooltip = d3
+      .select('body')
+      .append('div')
+      .attr('class', `${tooltipClass} matrix-tooltip-${id}`)
+      .style('opacity', 0);
+  }
+
+  return tooltip;
 }
 
 const getStyles = (theme: GrafanaTheme2) => {
