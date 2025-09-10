@@ -97,18 +97,18 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     .attr('fill', theme.colors.text.primary)
     .call(truncateLabel, maxTxtLength)
     .on('mouseover', function (event, d) {
-      // var divSize = tooltip.node().getBoundingClientRect();  
       const tooltip = getTooltip(id, styles.tooltip);
       tooltip
         .html(d)
-        .style('left', event.pageX + 'px')
-        // .style('left', event.pageX - divSize.width + 'px')
-        //place the tooltip 5 pixels above the box they hovered
-        .style('top', event.pageY - 5 + 'px')
-        // .style('top', event.pageY - divSize.height - 5 + 'px')
         .transition()
         .duration(150)
         .style('opacity', 1);
+    })
+    .on('mousemove', function (event) {
+      const tooltip = getTooltip(id, styles.tooltip);
+      tooltip
+        .style('left', event.pageX + 5 + 'px')
+        .style('top', event.pageY + 5 + 'px')
     })
     .on('mouseout', function () {
       d3.select(this).attr('opacity', '1');
@@ -219,12 +219,16 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
 </div>`;
             return text;
           })
-          .style('left', event.pageX + 5 + 'px')
-          .style('top', event.pageY + 5 + 'px')
           .transition()
           .duration(150)
           .style('opacity', 1);
       }
+    })
+    .on('mousemove', function (event) {
+      const tooltip = getTooltip(id, styles.tooltip);
+      tooltip
+        .style('left', event.pageX + 5 + 'px')
+        .style('top', event.pageY + 5 + 'px')
     })
     .on('mouseout', function () {
       //reset the opacity and move the tooltip out of the way. If we dont move it it will prevent hovering over other boxes.
