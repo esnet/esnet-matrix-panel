@@ -39,26 +39,29 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   }
 
   //find the length of the longest name. this will inform the margin and name truncation
-  var allNames = rowNames.concat(colNames);
-  var longest = allNames.reduce((a, b) => {
+  var longestColName = colNames.reduce((a, b) => {
+    return a.length > b.length ? a : b;
+  });
+  var longestRowName = rowNames.reduce((a, b) => {
     return a.length > b.length ? a : b;
   });
 
   //txtLength is passed in. but names may be much smaller than this value.
   //since this informs the margin we want to set it to whichever is longer
   //this prevents a huge white space if txtlength is considerably bigger
-  //than the longest name
-  const maxTxtLength = longest.length < txtLength ? longest.length : txtLength;
+  //than the longest name. add 3 characters to account for ellipsis (...)
+  const maxColTxtLength = longestColName.length < txtLength ? longestColName.length : txtLength + 3;
+  const maxRowTxtLength = longestRowName.length < txtLength ? longestRowName.length : txtLength + 3;
 
   //the user settable value cellsize controls the size of the svg.
   // var size = names.length * cellSize;
 
   //calculate the margins needed
-  var txtOffset = maxTxtLength * txtSize * 5 + 25;
+  var colTxtOffset = maxColTxtLength * txtSize * 5 + 25;
+  var rowTxtOffset = maxRowTxtLength * txtSize * 5 + 25;
 
   // set the dimensions and margins of the graph
-  // the top has a drop shadow and needs an extra 10 pixels to display properly
-  var margin = { top: txtOffset + 10, right: 0, bottom: 0, left: txtOffset },
+  var margin = { top: colTxtOffset, right: 0, bottom: 0, left: rowTxtOffset },
     width = colNames.length * cellSize,
     height = rowNames.length * cellSize;
 
@@ -92,7 +95,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     .attr('font-size', txtSize + 'em')
     .style('font-family', theme.typography.fontFamily.sansSerif)
     .attr('fill', theme.colors.text.primary)
-    .call(truncateLabel, maxTxtLength)
+    .call(truncateLabel, txtLength)
     .on('mouseover', function (event, d) {
       // var divSize = tooltip.node().getBoundingClientRect();  
       let tooltip = d3
