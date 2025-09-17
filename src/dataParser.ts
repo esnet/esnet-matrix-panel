@@ -53,7 +53,7 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
   const nullColor = theme.visualization.getColorByName(options.nullColor);
   const defaultColor = theme.visualization.getColorByName(options.defaultColor);
   function colorMap(v: any): string {
-    if (v == null) {
+    if (v === null) {
       return nullColor;
     } else if (v === -1) {
       return defaultColor;

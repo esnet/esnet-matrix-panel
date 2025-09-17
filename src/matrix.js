@@ -189,7 +189,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
     })
     // the tooltip for boxes
     .on('mouseover', function (event, d) {
-      if (d != -1) {
+      if (d !== -1) {
         //turn down the opacity slightly to show the hover
         d3.select(this)
           // .attr('opacity', '.75')
@@ -270,7 +270,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
       .attr('id', legendClass);
 
 ////////////// range - bar //////////////////////
-    if (options.legendType == 'range') {
+    if (options.legendType === 'range') {
       var svg = d3.select(`#${legendClass}`);
       svg
         // legend bar starts at x=25, legend squares are 10x10, allow 9px per label character
@@ -303,7 +303,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
         })
         .attr('y', 50)
         .text(function (d, i) {
-          if ((i == 0) | (i == legend.length - 1)) {
+          if ((i === 0) | (i === legend.length - 1)) {
             return d.label;
           } else {
             return;
