@@ -1,3 +1,5 @@
+import { DisplayValue } from '@grafana/data';
+
 export interface MatrixOptions {
   sourceField: string;
   targetField: string;
@@ -18,9 +20,29 @@ export interface MatrixOptions {
   urlOther: boolean;
   urlOtherText: string;
   inputList: boolean;
-  staticRows: string[];
-  staticColumns: string[];
+  staticRows: string;
+  staticColumns: string;
   showLegend: boolean;
   legendType: string;
   thresholds: any[];
 }
+
+export type MatrixData = {
+  rows: string[] | null;
+  columns: string[] | null;
+  data: DataMatrixCell[][] | string | null;
+  legend: LegendData[] | null;
+};
+
+export type DataMatrixCell = {
+  row: string;
+  col: string;
+  val: number;
+  color: string;
+  display: DisplayValue;
+};
+
+export type LegendData = {
+  label: string;
+  color: string;
+};

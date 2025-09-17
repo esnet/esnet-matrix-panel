@@ -1,21 +1,21 @@
-import { DataFrameView } from '@grafana/data';
+import { DataFrameView, Field, FieldType, getFieldDisplayName, GrafanaTheme2, PanelData } from '@grafana/data';
+import { DataMatrixCell, LegendData, MatrixData, MatrixOptions } from './types';
 
 // import { legend } from 'matrixLegend';
 
 /**
- * this function creates an adjacency matrix to be consumed by the chord
+ * this function creates an adjacency matrix to be consumed by the matrix diagram
  * function returns the matrix + forward and reverse lookup Maps to go from
  * source and target id to description assumes that data coming to us has at
  * least 3 columns if no preferences provided, assumes the first 3 columns are
  * source and target dimensions then value to display
- * @param {*} data Data for the chord diagram
- * @param {string} src The data series that will act as the source
- * @param {string} target The data series that will act as * the target
- * @param {string} val The data series that will act as the value
- * @return {[rowNames, colNames, dataMatrix]}
+ * @param {PanelData} data Data for the matrix diagram
+ * @param {MatrixOptions} options Panel configuration
+ * @param {GrafanaTheme2} theme Grafana theme
+ * @return {MatrixData}
  */
 
-export function parseData(data: { series: any[] }, options: any, theme: any) {
+export function parseData(data: PanelData, options: MatrixOptions, theme: GrafanaTheme2): MatrixData {
   const series = data.series[0];
   if (series === null || series === undefined) {
     // no data, bail
@@ -52,7 +52,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   // if value is null or was not returned by query, use different value
   const nullColor = theme.visualization.getColorByName(options.nullColor);
   const defaultColor = theme.visualization.getColorByName(options.defaultColor);
-  function colorMap(v: any) {
+  function colorMap(v: any): string {
     if (v == null) {
       return nullColor;
     } else if (v === -1) {
@@ -63,8 +63,8 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   }
 
   // Make Row and Column Lists
-  let rows: any[] = [];
-  let columns: any[] = [];
+  let rows: string[] = [];
+  let columns: string[] = [];
   // let uniqueVals: any[] = [];
 
   // IF static list toggle is set, use input list
@@ -108,7 +108,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
 
   // console.log(options);
   // create data matrix
-  let dataMatrix: any[][] = [];
+  const dataMatrix: DataMatrixCell[][] = [];
   for (let i = 0; i < rowNames.length; i++) {
     dataMatrix.push(new Array(colNames.length).fill(-1));
   }
@@ -128,7 +128,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   });
 
   // parse data for legend
-  let legendData: any[] = [];
+  const legendData: LegendData[] = [];
   if (options.showLegend) {
     
     // let allVals = frame.fields[valKey].values;
