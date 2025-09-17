@@ -8,7 +8,6 @@ import sanitizeHtml from 'sanitize-html';
 /** Create the matrix diagram using d3.
  * @param {*} elem The parent svg element that will house this diagram
  * @param {*} id The panel id
- * @param {number} height The current height of the panel
  * @param {*} data The data that will populate the diagram
  * @param {string} src The data series that will act as the source
  * @param {string} target The data series that will act as * the target
@@ -16,7 +15,7 @@ import sanitizeHtml from 'sanitize-html';
  * @param {GrafanaTheme} theme
  * @param {CSSReturnValue} styles
  */
-function createViz(elem, id, height, rowNames, colNames, matrix, options, theme, legend, styles) {
+function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend, styles) {
   const srcText = sanitizeHtml(options.sourceText),
     targetText = sanitizeHtml(options.targetText),
     valText = sanitizeHtml(options.valueText),
@@ -421,14 +420,13 @@ const getStyles = (theme: GrafanaTheme2) => {
  * @param {string} src The data series that will act as the source
  * @param {string} target The data series that will act as * the target
  * @param {string} val The data series that will act as the value
- * @param {number} height Height of panel
  * @return {*} A d3 callback
  */
-function matrix(rowNames, colNames, matrix, id, height, options, legend) {
+function matrix(rowNames, colNames, matrix, id, options, legend) {
   const theme = useTheme2();
   const styles = useStyles2(getStyles);
   const ref = useD3((svg) => {
-    createViz(svg, id, height, rowNames, colNames, matrix, options, theme, legend, styles);
+    createViz(svg, id, rowNames, colNames, matrix, options, theme, legend, styles);
   });
   return ref;
 }
