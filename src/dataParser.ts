@@ -30,23 +30,44 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     return { rows: null, columns: null, data: null, legend: null };
   }
   // set fields
-  let sourceKey = options.sourceField;
-  let targetKey = options.targetField;
-  if (!sourceKey) {
-    sourceKey = 0;
-  }
-  if (!targetKey) {
-    targetKey = 1;
+  const sourceField = series.fields.find((f: Field) =>
+    options.sourceField !== undefined && (
+      options.sourceField === f.name
+      || options.sourceField === f.config?.displayNameFromDS
+      || options.sourceField === getFieldDisplayName(f)
+    )
+  ) ?? series.fields.find((f: Field) => f.type === FieldType.string);
+  const targetField = series.fields.find((f: Field) =>
+    options.targetField !== undefined && (
+      options.targetField === f.name
+      || options.targetField === f.config?.displayNameFromDS
+      || options.targetField === getFieldDisplayName(f)
+    )
+  ) ?? series.fields.find((f: Field) => f.type === FieldType.string && f.name !== sourceField?.name);
+  const sourceKey = sourceField?.name;
+  const targetKey = targetField?.name;
+
+  if (sourceKey === undefined || targetKey === undefined) {
+    // no data, bail
+    console.error('no data');
+    return { rows: null, columns: null, data: null, legend: null };
   }
 
   // assign valueField to the specified field or use the first number field by default
-  const val = options.valueField;
-  const valueField = val
-    ? data.series.map((series: { fields: any[] }) => series.fields.find((field: { name: any }) => field.name === val))
-    : data.series.map((series: { fields: any[] }) =>
-        series.fields.find((field: { type: string }) => field.type === 'number')
-      );
-  const valKey = valueField[0].name;
+  const valueField: any = series.fields.find((f: Field) =>
+    options.valueField !== undefined && (
+      options.valueField === f.name
+      || options.valueField === f.config?.displayNameFromDS
+      || options.valueField === getFieldDisplayName(f)
+    )
+  ) ?? series.fields.find((f: Field) => f.type === FieldType.number);
+  const valKey = valueField?.name;
+
+  if (valueField === undefined || valKey === undefined) {
+    // no data, bail
+    console.error('no data');
+    return { rows: null, columns: null, data: null, legend: null };
+  }
 
   // function that maps value to color specified by Standard Options panel.
   // if value is null or was not returned by query, use different value
@@ -58,7 +79,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     } else if (v === -1) {
       return defaultColor;
     } else {
-      return valueField[0].display(v).color;
+      return valueField.display(v).color;
     }
   }
 
@@ -69,8 +90,12 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
 
   // IF static list toggle is set, use input list
   if (options.inputList) {
-    rows = options.staticRows.split(',');
-    columns = options.staticColumns.split(',');
+    if (options.staticRows !== undefined) {
+      rows = options.staticRows.split(',');
+    }
+    if (options.staticColumns !== undefined) {
+      columns = options.staticColumns.split(',');
+    }
   } else {
     // ELSE  Make new arrays from unique set of row and column axis labels
     // find all axis labels
@@ -79,6 +104,13 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
       columns.push(String(row[targetKey]));
     });
   }
+
+  if (rows.length === 0 || columns.length === 0) {
+    // no data, bail
+    console.error('no data');
+    return { rows: null, columns: null, data: null, legend: null };
+  }
+
   // get unique set
   const rowNames = Array.from(new Set(rows)).sort();
   const colNames = Array.from(new Set(columns)).sort();
@@ -122,7 +154,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
         col: row[targetKey],
         val: v,
         color: colorMap(v),
-        display: valueField[0].display(v),
+        display: valueField.display(v),
       };
     }
   });
@@ -153,9 +185,9 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     tempValues.forEach((val) => {
       // find display values, unit & color for each
       // store in array
-      let text = valueField[0].display(val).text;
-      if (valueField[0].display(val).suffix) {
-        text = text + ` ${valueField[0].display(val).suffix}`;
+      let text = valueField.display(val).text;
+      if (valueField.display(val).suffix) {
+        text = text + ` ${valueField.display(val).suffix}`;
       }
         legendData.push({
           label: text,
