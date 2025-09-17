@@ -39,10 +39,10 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
   }
 
   //find the length of the longest name. this will inform the margin and name truncation
-  var longestColName = colNames.reduce((a, b) => {
+  const longestColName = colNames.reduce((a, b) => {
     return a.length > b.length ? a : b;
   });
-  var longestRowName = rowNames.reduce((a, b) => {
+  const longestRowName = rowNames.reduce((a, b) => {
     return a.length > b.length ? a : b;
   });
 
@@ -57,11 +57,11 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
   // var size = names.length * cellSize;
 
   //calculate the margins needed
-  var colTxtOffset = maxColTxtLength * txtSize * 5 + 25;
-  var rowTxtOffset = maxRowTxtLength * txtSize * 5 + 25;
+  const colTxtOffset = maxColTxtLength * txtSize * 5 + 25;
+  const rowTxtOffset = maxRowTxtLength * txtSize * 5 + 25;
 
   // set the dimensions and margins of the graph
-  var margin = { top: colTxtOffset, right: 0, bottom: 0, left: rowTxtOffset },
+  const margin = { top: colTxtOffset, right: 0, bottom: 0, left: rowTxtOffset },
     width = colNames.length * cellSize,
     height = rowNames.length * cellSize;
 
@@ -71,8 +71,8 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
   }
 
   // append the svg object to the body of the page
-  var svgClass = `svg-${id}`;
-  var svg = d3
+  const svgClass = `svg-${id}`;
+  let svg = d3
     .select(elem)
     .append('svg')
     .attr('id', svgClass)
@@ -82,7 +82,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
     .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
   // Build X scales and axis:
-  var x = d3.scaleBand().range([0, width]).domain(colNames).padding(cellPadding);
+  const x = d3.scaleBand().range([0, width]).domain(colNames).padding(cellPadding);
   svg.append('g').call(d3.axisTop(x)).select('.domain').remove();
 
   //rotate the labels on the X axis
@@ -90,7 +90,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
   svg.selectAll('text').attr('style', 'text-anchor:start').attr('transform', 'translate(12,-12)rotate(-90)');
 
   // Build Y scales and axis:
-  var y = d3.scaleBand().range([height, 0]).domain(rowNames.slice().reverse()).padding(cellPadding);
+  const y = d3.scaleBand().range([height, 0]).domain(rowNames.slice().reverse()).padding(cellPadding);
   svg.append('g').call(d3.axisLeft(y)).select('.domain').remove();
 
   //the scale bands have created the labels on the axis now we need to make sure the styles are set and add the hover events
@@ -131,19 +131,19 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
   //build the matrix /////////////////////////////////////////
 
   //use d3's local stuff to record where we are in the outer loop
-  var outer = d3.local();
+  const outer = d3.local();
 
-  var svg_g = d3.select('#' + svgClass).selectAll('svg > g');
+  const svg_g = d3.select('#' + svgClass).selectAll('svg > g');
 
   //create the area where we will put all the boxes
   const rectClass = `rectArea-${id}`;
-  var rectArea = svg_g.append('g').attr('class', rectClass);
+  const rectArea = svg_g.append('g').attr('class', rectClass);
 
   //this selection breaks the data down to the row level. This is
   //needed because the underlying datastructure is a 2d array
-  var rows = rectArea.selectAll('g').data(matrix).enter().append('g').attr('class', 'row');
+  const rows = rectArea.selectAll('g').data(matrix).enter().append('g').attr('class', 'row');
 
-  var rects = rows
+  const rects = rows
     .selectAll('rect')
     .data(function (d, i) {
       outer.set(this, i);
@@ -153,7 +153,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
     .append('a')
     .attr('xlink:href', (d) => {
       if (linkURL) {
-        var thisURL = linkURL;
+        let thisURL = linkURL;
         if (urlVar1) {
           thisURL = thisURL.concat(`&var-${urlVar1}=${d.row}`);
         }
@@ -169,15 +169,15 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
       return x(colNames[i]);
     })
     .attr('y', function (d, i, j) {
-      var outer_counter = outer.get(this);
+      const outer_counter = outer.get(this);
       return y(rowNames[outer_counter]);
     })
     .attr('width', x.bandwidth())
     .attr('height', y.bandwidth())
     //this places a 'data' attribute into the HTML to make debugging easier. Allows you to see the inner/outer loop counts and the datum used
     .attr('data', function (d, i) {
-      var outer_counter = outer.get(this);
-      var str = '' + outer_counter + ':' + i + ' ' + rowNames[outer_counter] + ':' + colNames[i] + ' ' + d;
+      const outer_counter = outer.get(this);
+      const str = '' + outer_counter + ':' + i + ' ' + rowNames[outer_counter] + ':' + colNames[i] + ' ' + d;
       return str;
     })
     .attr('fill', (d) => {
@@ -200,8 +200,8 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
         const tooltip = getTooltip(id, styles.tooltip);
         tooltip
           .html(() => {
-            var thisDisplay = d.display;
-            var text = `<div class="${styles.tooltipTable}">
+            const thisDisplay = d.display;
+            const text = `<div class="${styles.tooltipTable}">
   <div class="${styles.tooltipTableCell}">
     <div class="${styles.tooltipTableRowLabel}">${srcText}</div>
   </div>
@@ -260,9 +260,9 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
 
   ////// LEGEND ////////////
   if (options.showLegend) {
-    var legendClass = `legend-${id}`;
+    const legendClass = `legend-${id}`;
 
-    var div = d3
+    d3
       .select(elem)
       .append('div')
       .attr('class', `matrix-legend-${id}`)
@@ -271,7 +271,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
 
 ////////////// range - bar //////////////////////
     if (options.legendType === 'range') {
-      var svg = d3.select(`#${legendClass}`);
+      svg = d3.select(`#${legendClass}`);
       svg
         // legend bar starts at x=25, legend squares are 10x10, allow 9px per label character
         .attr('width', 25 + (legend.length - 1) * 10 + legend[legend.length - 1].label.length * 9)
@@ -312,7 +312,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
         .attr('fill', theme.colors.text.primary);
     } else {
 /////////// categorical - circles ////////////////////////////
-      var svg = d3.select(`#${legendClass}`);
+      svg = d3.select(`#${legendClass}`);
       svg
         // legend bar starts at x=25, legend circles are drawn every 75px and have a 20px diameter,
         // allow 9px per label character
@@ -351,7 +351,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
 
 function truncateLabel(text, width) {
   text.each(function () {
-    var label = d3.select(this).text();
+    let label = d3.select(this).text();
     if (label.length > width) {
       label = label.slice(0, width) + '...';
     }

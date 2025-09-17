@@ -165,6 +165,6 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
   }
   // console.log(legendData);
 
-  let dataObject = { rows: rowNames, columns: colNames, data: dataMatrix, legend: legendData };
+  const dataObject = { rows: rowNames, columns: colNames, data: dataMatrix, legend: legendData };
   return dataObject;
 }
