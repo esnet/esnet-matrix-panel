@@ -3,6 +3,7 @@ import * as d3 from './d3.min.js';
 import { css } from '@emotion/css';
 import { GrafanaTheme2 } from '@grafana/data';
 import { useStyles2, useTheme2 } from '@grafana/ui';
+import sanitizeHtml from 'sanitize-html';
 
 /** Create the matrix diagram using d3.
  * @param {*} elem The parent svg element that will house this diagram
@@ -16,9 +17,9 @@ import { useStyles2, useTheme2 } from '@grafana/ui';
  * @param {CSSReturnValue} styles
  */
 function createViz(elem, id, height, rowNames, colNames, matrix, options, theme, legend, styles) {
-  const srcText = options.sourceText,
-    targetText = options.targetText,
-    valText = options.valueText,
+  const srcText = sanitizeHtml(options.sourceText),
+    targetText = sanitizeHtml(options.targetText),
+    valText = sanitizeHtml(options.valueText),
     cellSize = options.cellSize,
     cellPadding = options.cellPadding / 100, // convert the cellPadding integer to a float that can be used by d3
     txtLength = options.txtLength,
@@ -102,7 +103,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     .on('mouseover', function (event, d) {
       const tooltip = getTooltip(id, styles.tooltip);
       tooltip
-        .html(d)
+        .html(sanitizeHtml(d))
         .transition()
         .duration(150)
         .style('opacity', 1);
@@ -264,7 +265,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     var div = d3
       .select(elem)
       .append('div')
-      .attr('class', 'matrix-legend')
+      .attr('class', `matrix-legend-${id}`)
       .append('svg')
       .attr('id', legendClass);
 
@@ -273,10 +274,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
       var svg = d3.select(`#${legendClass}`);
       svg
         // legend bar starts at x=25, legend squares are 10x10, allow 9px per label character
-        .attr(
-          "width",
-          25 + ((legend.length - 1) * 10) + (legend[legend.length - 1].label.length * 9),
-        )
+        .attr('width', 25 + (legend.length - 1) * 10 + legend[legend.length - 1].label.length * 9)
         // legend label starts at y=50, allow 16px per label character
         .attr('height', 50 + 16)
         .append('g')
@@ -284,7 +282,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
         .data(legend)
         .enter()
         .append('rect')
-        .attr('class', 'legend-bar')
+        .attr('class', `legend-bar-${id}`)
         .attr('width', 10)
         .attr('height', 10)
         .attr('fill', function (d) {
@@ -318,10 +316,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
       svg
         // legend bar starts at x=25, legend circles are drawn every 75px and have a 20px diameter,
         // allow 9px per label character
-        .attr(
-          "width",
-          25 + ((legend.length - 1) * 75) + 20 + (legend[legend.length - 1].label.length * 9),
-        )
+        .attr('width', 25 + (legend.length - 1) * 75 + 20 + legend[legend.length - 1].label.length * 9)
         // legend label starts at y=50, allow 16px per label character
         .attr('height', 50 + 16)
         .append('g')
@@ -329,7 +324,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
         .data(legend)
         .enter()
         .append('circle')
-        .attr('class', 'legend-circle')
+        .attr('class', `legend-circle-${id}`)
         .attr('r', 10)
         .attr('fill', function (d) {
           return d.color;
@@ -375,8 +370,8 @@ function getTooltip(id, tooltipClass) {
     tooltip = d3
       .select('body')
       .append('div')
-      .attr('class', `${tooltipClass} matrix-tooltip-${id}`)
-      .style('opacity', 0);
+        .attr('class', `${tooltipClass} matrix-tooltip-${id}`)
+        .style('opacity', 0);
   }
 
   return tooltip;

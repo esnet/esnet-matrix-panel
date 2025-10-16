@@ -24,9 +24,10 @@ function renderLegend(elem, id, height, legend, options, theme) {
   var div = d3
     .select(elem)
     .append('div')
-    .attr('class', 'matrix-legend')
+    .attr('class', `matrix-legend-${id}`)
     .attr('width', 'auto')
-    .append('svg').attr('id', svgClass);
+    .append('svg')
+    .attr('id', svgClass);
 
 var svg = d3.select(`#${svgClass}`)
 svg.append('circle')
