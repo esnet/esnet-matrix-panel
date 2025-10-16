@@ -19,14 +19,14 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   const series = data.series[0];
   if (series === null || series === undefined) {
     // no data, bail
-    console.log('no data');
+    console.error('no data');
     return { rows: null, columns: null, data: null, legend: null };
   }
 
   const frame = new DataFrameView(series);
   if (frame === null || frame === undefined) {
     // no data, bail
-    console.log('no data');
+    console.error('no data');
     return { rows: null, columns: null, data: null, legend: null };
   }
   // set fields

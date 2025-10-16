@@ -11,7 +11,7 @@ import { useTheme2 } from '@grafana/ui';
  */
 function renderLegend(elem, id, height, legend, options, theme) {
   if (elem === null) {
-    console.log('bailing after failing to find parent element');
+    console.error('bailing after failing to find parent element');
     return;
   }
   // while (elem !== undefined && elem.firstChild) {
