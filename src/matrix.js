@@ -111,8 +111,8 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     .on('mousemove', function (event) {
       const tooltip = getTooltip(id, styles.tooltip);
       tooltip
-        .style('left', event.pageX + 5 + 'px')
-        .style('top', event.pageY + 5 + 'px')
+        .style('left', event.offsetX + 5 + 'px')
+        .style('top', event.offsetY + 5 + 'px')
     })
     .on('mouseout', function () {
       d3.select(this).attr('opacity', '1');
@@ -231,8 +231,8 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     .on('mousemove', function (event) {
       const tooltip = getTooltip(id, styles.tooltip);
       tooltip
-        .style('left', event.pageX + 5 + 'px')
-        .style('top', event.pageY + 5 + 'px')
+        .style('left', event.offsetX + 5 + 'px')
+        .style('top', event.offsetY + 5 + 'px')
     })
     .on('mouseout', function () {
       //reset the opacity and move the tooltip out of the way. If we dont move it it will prevent hovering over other boxes.
@@ -368,10 +368,10 @@ function getTooltip(id, tooltipClass) {
   let tooltip = d3.select(`.matrix-tooltip-${id}`);
   if (tooltip.empty()) {
     tooltip = d3
-      .select('body')
+      .select(`#matrix-panel-${id}`)
       .append('div')
-        .attr('class', `${tooltipClass} matrix-tooltip-${id}`)
-        .style('opacity', 0);
+      .attr('class', `${tooltipClass} matrix-tooltip-${id}`)
+      .style('opacity', 0);
   }
 
   return tooltip;
