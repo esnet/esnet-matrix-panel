@@ -6,17 +6,17 @@ import { useStyles2, useTheme2 } from '@grafana/ui';
 import sanitizeHtml from 'sanitize-html';
 
 /** Create the matrix diagram using d3.
- * @param {*} elem The parent svg element that will house this diagram
- * @param {*} id The panel id
- * @param {number} height The current height of the panel
- * @param {*} data The data that will populate the diagram
- * @param {string} src The data series that will act as the source
- * @param {string} target The data series that will act as * the target
- * @param {string} val The data series that will act as the value
- * @param {GrafanaTheme} theme
- * @param {CSSReturnValue} styles
+ * @param {SvgInHtml} elem The parent svg element that will house this diagram
+ * @param {number} id The panel id
+ * @param {string[]} rowNames Row names
+ * @param {string[]} colNames Column names
+ * @param {DataMatrixCell[][]} matrix The data that will populate the diagram
+ * @param {MatrixOptions} options Panel configuration
+ * @param {GrafanaTheme} theme Grafana theme
+ * @param {LegendData[]} legend Legend data
+ * @param {CSSReturnValue} styles CSS styles
  */
-function createViz(elem, id, height, rowNames, colNames, matrix, options, theme, legend, styles) {
+function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend, styles) {
   const srcText = sanitizeHtml(options.sourceText),
     targetText = sanitizeHtml(options.targetText),
     valText = sanitizeHtml(options.valueText),
@@ -39,10 +39,10 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   }
 
   //find the length of the longest name. this will inform the margin and name truncation
-  var longestColName = colNames.reduce((a, b) => {
+  const longestColName = colNames.reduce((a, b) => {
     return a.length > b.length ? a : b;
   });
-  var longestRowName = rowNames.reduce((a, b) => {
+  const longestRowName = rowNames.reduce((a, b) => {
     return a.length > b.length ? a : b;
   });
 
@@ -57,11 +57,11 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   // var size = names.length * cellSize;
 
   //calculate the margins needed
-  var colTxtOffset = maxColTxtLength * txtSize * 5 + 25;
-  var rowTxtOffset = maxRowTxtLength * txtSize * 5 + 25;
+  const colTxtOffset = maxColTxtLength * txtSize * 5 + 25;
+  const rowTxtOffset = maxRowTxtLength * txtSize * 5 + 25;
 
   // set the dimensions and margins of the graph
-  var margin = { top: colTxtOffset, right: 0, bottom: 0, left: rowTxtOffset },
+  const margin = { top: colTxtOffset, right: 0, bottom: 0, left: rowTxtOffset },
     width = colNames.length * cellSize,
     height = rowNames.length * cellSize;
 
@@ -77,8 +77,8 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     .style('opacity', 0);
 
   // append the svg object to the body of the page
-  var svgClass = `svg-${id}`;
-  var svg = d3
+  const svgClass = `svg-${id}`;
+  let svg = d3
     .select(elem)
     .append('svg')
     .attr('id', svgClass)
@@ -88,7 +88,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
   // Build X scales and axis:
-  var x = d3.scaleBand().range([0, width]).domain(colNames).padding(cellPadding);
+  const x = d3.scaleBand().range([0, width]).domain(colNames).padding(cellPadding);
   svg.append('g').call(d3.axisTop(x)).select('.domain').remove();
 
   //rotate the labels on the X axis
@@ -96,7 +96,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   svg.selectAll('text').attr('style', 'text-anchor:start').attr('transform', 'translate(12,-12)rotate(-90)');
 
   // Build Y scales and axis:
-  var y = d3.scaleBand().range([height, 0]).domain(rowNames.slice().reverse()).padding(cellPadding);
+  const y = d3.scaleBand().range([height, 0]).domain(rowNames.slice().reverse()).padding(cellPadding);
   svg.append('g').call(d3.axisLeft(y)).select('.domain').remove();
 
   //the scale bands have created the labels on the axis now we need to make sure the styles are set and add the hover events
@@ -129,19 +129,19 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   //build the matrix /////////////////////////////////////////
 
   //use d3's local stuff to record where we are in the outer loop
-  var outer = d3.local();
+  const outer = d3.local();
 
-  var svg_g = d3.select('#' + svgClass).selectAll('svg > g');
+  const svg_g = d3.select('#' + svgClass).selectAll('svg > g');
 
   //create the area where we will put all the boxes
   const rectClass = `rectArea-${id}`;
-  var rectArea = svg_g.append('g').attr('class', rectClass);
+  const rectArea = svg_g.append('g').attr('class', rectClass);
 
   //this selection breaks the data down to the row level. This is
   //needed because the underlying datastructure is a 2d array
-  var rows = rectArea.selectAll('g').data(matrix).enter().append('g').attr('class', 'row');
+  const rows = rectArea.selectAll('g').data(matrix).enter().append('g').attr('class', 'row');
 
-  var rects = rows
+  const rects = rows
     .selectAll('rect')
     .data(function (d, i) {
       outer.set(this, i);
@@ -151,7 +151,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     .append('a')
     .attr('xlink:href', (d) => {
       if (linkURL) {
-        var thisURL = linkURL;
+        let thisURL = linkURL;
         if (urlVar1) {
           thisURL = thisURL.concat(`&var-${urlVar1}=${d.row}`);
         }
@@ -167,15 +167,15 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
       return x(colNames[i]);
     })
     .attr('y', function (d, i, j) {
-      var outer_counter = outer.get(this);
+      const outer_counter = outer.get(this);
       return y(rowNames[outer_counter]);
     })
     .attr('width', x.bandwidth())
     .attr('height', y.bandwidth())
     //this places a 'data' attribute into the HTML to make debugging easier. Allows you to see the inner/outer loop counts and the datum used
     .attr('data', function (d, i) {
-      var outer_counter = outer.get(this);
-      var str = '' + outer_counter + ':' + i + ' ' + rowNames[outer_counter] + ':' + colNames[i] + ' ' + d;
+      const outer_counter = outer.get(this);
+      const str = '' + outer_counter + ':' + i + ' ' + rowNames[outer_counter] + ':' + colNames[i] + ' ' + d;
       return str;
     })
     .attr('fill', (d) => {
@@ -187,7 +187,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     })
     // the tooltip for boxes
     .on('mouseover', function (event, d) {
-      if (d != -1) {
+      if (d !== -1) {
         //turn down the opacity slightly to show the hover
         d3.select(this)
           // .attr('opacity', '.75')
@@ -197,8 +197,8 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
 
         tooltip
           .html(() => {
-            var thisDisplay = d.display;
-            var text = `<div class="${styles.tooltipTable}">
+            const thisDisplay = d.display;
+            const text = `<div class="${styles.tooltipTable}">
   <div class="${styles.tooltipTableCell}">
     <div class="${styles.tooltipTableRowLabel}">${srcText}</div>
   </div>
@@ -250,9 +250,9 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
 
   ////// LEGEND ////////////
   if (options.showLegend) {
-    var legendClass = `legend-${id}`;
+    const legendClass = `legend-${id}`;
 
-    var div = d3
+    d3
       .select(elem)
       .append('div')
       .attr('class', `matrix-legend-${id}`)
@@ -260,8 +260,8 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
       .attr('id', legendClass);
 
 ////////////// range - bar //////////////////////
-    if (options.legendType == 'range') {
-      var svg = d3.select(`#${legendClass}`);
+    if (options.legendType === 'range') {
+      svg = d3.select(`#${legendClass}`);
       svg
         // legend bar starts at x=25, legend squares are 10x10, allow 9px per label character
         .attr('width', 25 + (legend.length - 1) * 10 + legend[legend.length - 1].label.length * 9)
@@ -293,7 +293,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
         })
         .attr('y', 50)
         .text(function (d, i) {
-          if ((i == 0) | (i == legend.length - 1)) {
+          if ((i === 0) | (i === legend.length - 1)) {
             return d.label;
           } else {
             return;
@@ -302,7 +302,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
         .attr('fill', theme.colors.text.primary);
     } else {
 /////////// categorical - circles ////////////////////////////
-      var svg = d3.select(`#${legendClass}`);
+      svg = d3.select(`#${legendClass}`);
       svg
         // legend bar starts at x=25, legend circles are drawn every 75px and have a 20px diameter,
         // allow 9px per label character
@@ -341,7 +341,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
 
 function truncateLabel(text, width) {
   text.each(function () {
-    var label = d3.select(this).text();
+    let label = d3.select(this).text();
     if (label.length > width) {
       label = label.slice(0, width) + '...';
     }
@@ -429,19 +429,19 @@ const getStyles = (theme: GrafanaTheme2) => {
 
 /**
  *
- * @param {*} data Data for the chord diagram
- * @param {*} id The panel id
- * @param {string} src The data series that will act as the source
- * @param {string} target The data series that will act as * the target
- * @param {string} val The data series that will act as the value
- * @param {number} height Height of panel
- * @return {*} A d3 callback
+ * @param {string[]} rowNames Row names
+ * @param {string[]} colNames Column names
+ * @param {DataMatrixCell[][]} matrix Data for the matrix diagram
+ * @param {number} id The panel id
+ * @param {MatrixOptions} options Panel configuration
+ * @param {LegendData[]} legend Legend data
+ * @return {SvgInHtml} A d3 callback
  */
-function matrix(rowNames, colNames, matrix, id, height, options, legend) {
+function matrix(rowNames, colNames, matrix, id, options, legend) {
   const theme = useTheme2();
   const styles = useStyles2(getStyles);
   const ref = useD3((svg) => {
-    createViz(svg, id, height, rowNames, colNames, matrix, options, theme, legend, styles);
+    createViz(svg, id, rowNames, colNames, matrix, options, theme, legend, styles);
   });
   return ref;
 }

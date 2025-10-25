@@ -1,9 +1,10 @@
+import { MatrixData, MatrixOptions } from './types';
+
 export function matrix(
-  rowNames: any, 
-  colNames: any, 
-  matrix: any,
+  rowNames: string[],
+  colNames: string[],
+  matrix: DataMatrixCell[][],
   id: number,
-  height: number,
-  options: any,
-  legend: any
+  options: MatrixOptions,
+  legend: LegendData[],
 ): LegacyRef<SVGSVGElement> | undefined;
