@@ -70,6 +70,12 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     elem.replaceChildren();
   }
 
+  const tooltip = d3
+    .select(elem)
+    .append('div')
+    .attr('class', `${styles.tooltip} matrix-tooltip-${id}`)
+    .style('opacity', 0);
+
   // append the svg object to the body of the page
   var svgClass = `svg-${id}`;
   var svg = d3
@@ -101,7 +107,6 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     .attr('fill', theme.colors.text.primary)
     .call(truncateLabel, txtLength)
     .on('mouseover', function (event, d) {
-      const tooltip = getTooltip(id, styles.tooltip);
       tooltip
         .html(sanitizeHtml(d))
         .transition()
@@ -109,23 +114,16 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
         .style('opacity', 1);
     })
     .on('mousemove', function (event) {
-      const tooltip = getTooltip(id, styles.tooltip);
-      tooltip
-        .style('left', event.offsetX + 5 + 'px')
-        .style('top', event.offsetY + 5 + 'px')
+      moveTooltip(event, elem, tooltip);
     })
     .on('mouseout', function () {
       d3.select(this).attr('opacity', '1');
 
-      const tooltip = getTooltip(id, styles.tooltip);
       tooltip
         .transition()
         .delay(100)
         .duration(150)
         .style('opacity', 0)
-        .on('end', () => {
-          tooltip.remove();
-        });
     });
 
   //build the matrix /////////////////////////////////////////
@@ -197,7 +195,6 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
           .attr('height', y.bandwidth() + 5)
           .attr('transform', 'translate(-1, -1)');
 
-        const tooltip = getTooltip(id, styles.tooltip);
         tooltip
           .html(() => {
             var thisDisplay = d.display;
@@ -229,10 +226,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
       }
     })
     .on('mousemove', function (event) {
-      const tooltip = getTooltip(id, styles.tooltip);
-      tooltip
-        .style('left', event.offsetX + 5 + 'px')
-        .style('top', event.offsetY + 5 + 'px')
+      moveTooltip(event, elem, tooltip);
     })
     .on('mouseout', function () {
       //reset the opacity and move the tooltip out of the way. If we dont move it it will prevent hovering over other boxes.
@@ -242,19 +236,15 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
         .attr('width', x.bandwidth())
         .attr('height', y.bandwidth());
 
-      const tooltip = getTooltip(id, styles.tooltip);
       tooltip
         .transition()
         .delay(100)
         .duration(150)
         .style('opacity', 0)
-        .on('end', () => {
-          tooltip.remove();
-        });
     })
     .on('click', function (d) {
       if(linkURL) {
-        d3.selectAll(`.matrix-tooltip-${id}`).remove();
+        tooltip.remove();
       }
     });
 
@@ -359,22 +349,45 @@ function truncateLabel(text, width) {
   });
 }
 
-/** Create tooltip element for the matrix diagram.
- * @param {number} id The panel id
- * @param {string} tooltipClass CSS class to use for tooltip
- * @return {Selection} A d3 div selection
+/** Move tooltip element to where mouse is.
+ * @param {event} event A mouse move event
+ * @param {SvgInHtml} elem The parent element that houses the matrix diagram
+ * @param {Selection} tooltip d3 tooltip div selection
  */
-function getTooltip(id, tooltipClass) {
-  let tooltip = d3.select(`.matrix-tooltip-${id}`);
-  if (tooltip.empty()) {
-    tooltip = d3
-      .select(`#matrix-panel-${id}`)
-      .append('div')
-      .attr('class', `${tooltipClass} matrix-tooltip-${id}`)
-      .style('opacity', 0);
+function moveTooltip(event, elem, tooltip) {
+  const scrollRect = elem.parentElement.getBoundingClientRect();
+  const tooltipRect = tooltip.node().getBoundingClientRect();
+
+  // Distance to place tooltip from mouse
+  const mouseDistance = 10;
+
+  const xMin = 0;
+  const yMin = 0;
+  const xMax = scrollRect.width + elem.parentElement.scrollLeft - tooltipRect.width;
+  const yMax = scrollRect.height + elem.parentElement.scrollTop - tooltipRect.height;
+
+  let xPos = 0;
+  let yPos = 0;
+
+  if (event.offsetX - mouseDistance >= xMin && event.offsetX + mouseDistance >= xMax) {
+    // Draw tooltip left of the mouse
+    xPos = Math.max(event.offsetX - tooltipRect.width - mouseDistance, xMin)
+  } else {
+    // Draw tooltip right of the mouse
+    xPos = Math.min(event.offsetX + mouseDistance, xMax);
   }
 
-  return tooltip;
+  if (event.offsetY - mouseDistance >= yMin && event.offsetY + mouseDistance >= yMax) {
+    // Draw tooltip above the mouse
+    yPos = Math.max(event.offsetY - tooltipRect.height - mouseDistance, yMin)
+  } else {
+    // Draw tooltip below the mouse
+    yPos = Math.min(event.offsetY + mouseDistance, yMax);
+  }
+
+  tooltip
+    .style('left', `${xPos}px`)
+    .style('top', `${yPos}px`)
 }
 
 const getStyles = (theme: GrafanaTheme2) => {
