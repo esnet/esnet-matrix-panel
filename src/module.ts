@@ -1,4 +1,4 @@
-import { FieldOverrideContext, getFieldDisplayName, PanelPlugin, FieldConfigProperty } from '@grafana/data';
+import { Field, FieldConfigProperty, FieldType, PanelPlugin } from '@grafana/data';
 // import { standardOptionsCompat } from 'grafana-plugin-support';
 import { MatrixOptions } from './types';
 import { EsnetMatrix } from './EsnetMatrix';
@@ -65,76 +65,32 @@ plugin.setPanelOptions((builder) => {
     category: RowOptions,
     showIf: staticBool(true),
   });
-  builder.addSelect({
+  builder.addFieldNamePicker({
     path: 'sourceField',
     name: 'Rows Field',
     description: 'Select the field that should be used for the rows',
     category: RowOptions,
     settings: {
-      allowCustomValue: false,
-      options: [],
-      getOptions: async (context: FieldOverrideContext) => {
-        const options = [];
-        if (context && context.data) {
-          for (const frame of context.data) {
-            for (const field of frame.fields) {
-              const name = getFieldDisplayName(field, frame, context.data);
-              const value = name;
-              options.push({ value, label: name });
-            }
-          }
-        }
-        return Promise.resolve(options);
-      },
+      filter: (field: Field) => field.type === FieldType.string,
     },
-    // defaultValue: options[0],
   });
-  builder.addSelect({
+  builder.addFieldNamePicker({
     path: 'targetField',
     name: 'Columns Field',
     description: 'Select the field to use for the columns',
     category: RowOptions,
     settings: {
-      allowCustomValue: false,
-      options: [],
-      getOptions: async (context: FieldOverrideContext) => {
-        const options = [];
-        if (context && context.data) {
-          for (const frame of context.data) {
-            for (const field of frame.fields) {
-              const name = getFieldDisplayName(field, frame, context.data);
-              const value = name;
-              options.push({ value, label: name });
-            }
-          }
-        }
-        return Promise.resolve(options);
-      },
+      filter: (field: Field) => field.type === FieldType.string,
     },
   });
-  builder.addSelect({
+  builder.addFieldNamePicker({
     path: 'valueField',
     name: 'Value Field',
     description: 'Select the numeric field used to color the matrix cells.',
     category: RowOptions,
     settings: {
-      allowCustomValue: false,
-      options: [],
-      getOptions: async (context: FieldOverrideContext) => {
-        const options = [];
-        if (context && context.data) {
-          for (const frame of context.data) {
-            for (const field of frame.fields) {
-              const name = getFieldDisplayName(field, frame, context.data);
-              const value = name;
-              options.push({ value, label: name });
-            }
-          }
-        }
-        return Promise.resolve(options);
-      },
+      filter: (field: Field) => field.type === FieldType.number,
     },
-    // defaultValue: options[2],
   });
 
   ////////------------ General Matrix Options ----------------/////////////
