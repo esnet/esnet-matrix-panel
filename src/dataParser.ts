@@ -80,8 +80,12 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     });
   }
   // get unique set
-  const rowNames = Array.from(new Set(rows)).sort();
-  const colNames = Array.from(new Set(columns)).sort();
+  const rowNames = Array.from(new Set(rows));
+  const colNames = Array.from(new Set(columns));
+
+  // sort row/col names with natural sort
+  rowNames.sort((a, b) => a.toString().localeCompare(b.toString(), undefined, { numeric: true }));
+  colNames.sort((a, b) => a.toString().localeCompare(b.toString(), undefined, { numeric: true }));
 
   const numSquaresInMatrix = rowNames.length * colNames.length;
   if (numSquaresInMatrix > 50000) {
