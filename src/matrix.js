@@ -197,25 +197,28 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
 
         tooltip
           .html(() => {
-            var thisDisplay = d.display;
+            var thisRow = sanitizeHtml(d.row);
+            var thisColumn =sanitizeHtml(d.col);
+            var thisText = sanitizeHtml(d.display.text);
+            var thisSuffix = sanitizeHtml(d.display.suffix);
             var text = `<div class="${styles.tooltipTable}">
   <div class="${styles.tooltipTableCell}">
     <div class="${styles.tooltipTableRowLabel}">${srcText}</div>
   </div>
   <div class="${styles.tooltipTableCell}">
-    <div class="${styles.tooltipTableRowValue}">${d.row}</div>
+    <div class="${styles.tooltipTableRowValue}">${thisRow}</div>
   </div>
   <div class="${styles.tooltipTableCell}">
     <div class="${styles.tooltipTableRowLabel}">${targetText}</div>
   </div>
   <div class="${styles.tooltipTableCell}">
-    <div class="${styles.tooltipTableRowValue}">${d.col}</div>
+    <div class="${styles.tooltipTableRowValue}">${thisColumn}</div>
   </div>
   <div class="${styles.tooltipTableCell}">
     <div class="${styles.tooltipTableRowLabel}">${valText}</div>
   </div>
   <div class="${styles.tooltipTableCell}">
-    <div class="${styles.tooltipTableRowValue}">${thisDisplay.text} ${thisDisplay.suffix ? thisDisplay.suffix : ''}</div>
+    <div class="${styles.tooltipTableRowValue}">${thisText} ${thisSuffix ? thisSuffix : ''}</div>
   </div>
 </div>`;
             return text;
