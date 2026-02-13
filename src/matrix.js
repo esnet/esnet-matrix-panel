@@ -61,18 +61,18 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   var rowTxtOffset = maxRowTxtLength * txtSize * 5 + 25;
 
   // Category header configuration
-  const categoryHeaderHeight = options.enableGrouping && colCategories && colCategories.length > 0
-    ? (options.categoryHeaderHeight !== undefined ? options.categoryHeaderHeight : 40)
+  const colCategoryHeaderHeight = options.enableColGrouping && colCategories && colCategories.length > 0
+    ? (options.colCategoryHeaderHeight !== undefined ? options.colCategoryHeaderHeight : 40)
     : 0;
-  const categoryGap = options.enableGrouping && colCategories && colCategories.length > 0
-    ? (options.categoryGap !== undefined ? options.categoryGap : 0)
+  const colCategoryGap = options.enableColGrouping && colCategories && colCategories.length > 0
+    ? (options.colCategoryGap !== undefined ? options.colCategoryGap : 0)
     : 0;
 
   // Calculate column positions with gaps between colCategories
   let columnPositions = [];
   let totalWidth = 0;
 
-  if (options.enableGrouping && colCategories && colCategories.length > 0) {
+  if (options.enableColGrouping && colCategories && colCategories.length > 0) {
     // Calculate positions with category gaps
     colCategories.forEach((category, catIndex) => {
       const numCols = category.columns.length;
@@ -90,7 +90,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
 
       totalWidth += groupWidth;
       if (catIndex < colCategories.length - 1) {
-        totalWidth += categoryGap;
+        totalWidth += colCategoryGap;
       }
     });
   } else {
@@ -153,7 +153,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   }
 
   // set the dimensions and margins of the graph
-  var margin = { top: colTxtOffset + categoryHeaderHeight, right: 0, bottom: 0, left: rowTxtOffset + rowCategoryHeaderWidth },
+  var margin = { top: colTxtOffset + colCategoryHeaderHeight, right: 0, bottom: 0, left: rowTxtOffset + rowCategoryHeaderWidth },
     width = totalWidth,
     height = totalHeight;
 
@@ -265,10 +265,10 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   });
 
   // Render category headers
-  if (options.enableGrouping && colCategories && colCategories.length > 0) {
+  if (options.enableColGrouping && colCategories && colCategories.length > 0) {
     const categoryHeaderGroup = svg.append('g')
       .attr('class', `category-headers-${id}`)
-      .attr('transform', `translate(0, ${-colTxtOffset - categoryHeaderHeight})`);
+      .attr('transform', `translate(0, ${-colTxtOffset - colCategoryHeaderHeight})`);
 
     colCategories.forEach((category, catIndex) => {
       const startPos = columnPositions.find(cp => cp.name === category.columns[0]);
@@ -280,7 +280,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
 
         // Category label rotated vertically (like column labels)
         categoryHeaderGroup.append('text')
-          .attr('transform', `translate(${groupX + groupWidth / 2}, ${categoryHeaderHeight - 12})rotate(-90)`)
+          .attr('transform', `translate(${groupX + groupWidth / 2}, ${colCategoryHeaderHeight - 12})rotate(-90)`)
           .attr('text-anchor', 'start')
           .attr('font-size', (txtSize * 1.2) + 'em')
           .attr('font-weight', 'bold')

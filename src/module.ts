@@ -20,7 +20,7 @@ const urlBool = (addUrl: boolean) => (config: MatrixOptions) => config.addUrl ==
 // const eurlOtherBool = (urlOther: boolean) => (config: MatrixOptions) => config.urlOther === urlOther;
 const staticBool = (inputList: boolean) => (config: MatrixOptions) => config.inputList === inputList;
 const legendBool = (showLegend: boolean) => (config: MatrixOptions) => config.showLegend === showLegend;
-const groupingBool = (enableGrouping: boolean) => (config: MatrixOptions) => config.enableGrouping === enableGrouping;
+const colGroupingBool = (enableColGrouping: boolean) => (config: MatrixOptions) => config.enableColGrouping === enableColGrouping;
 const rowGroupingBool = (enableRowGrouping: boolean) => (config: MatrixOptions) => config.enableRowGrouping === enableRowGrouping;
 
 // const buildStandardOptions = (): any => {
@@ -139,7 +139,7 @@ plugin.setPanelOptions((builder) => {
     // defaultValue: options[2],
   });
   builder.addSelect({
-    path: 'categoryField',
+    path: 'colCategoryField',
     name: 'Column Category Field',
     description: 'Select the field to use for grouping columns into categories',
     category: RowOptions,
@@ -162,7 +162,7 @@ plugin.setPanelOptions((builder) => {
     },
   });
   builder.addBooleanSwitch({
-    path: 'enableGrouping',
+    path: 'enableColGrouping',
     name: 'Enable Column Grouping',
     description: 'Show category headers and group columns by category',
     category: OptionsCategory,
@@ -176,11 +176,11 @@ plugin.setPanelOptions((builder) => {
     defaultValue: false,
   });
   builder.addNumberInput({
-    path: 'categoryHeaderHeight',
+    path: 'colCategoryHeaderHeight',
     name: 'Category Header Height',
     description: 'Height in pixels for category header labels',
     category: OptionsCategory,
-    showIf: groupingBool(true),
+    showIf: colGroupingBool(true),
     settings: {
       placeholder: 'Auto',
       integer: true,
@@ -190,11 +190,11 @@ plugin.setPanelOptions((builder) => {
     defaultValue: 40,
   });
   builder.addNumberInput({
-    path: 'categoryGap',
+    path: 'colCategoryGap',
     name: 'Gap Between Groups',
     description: 'Additional spacing between category groups in pixels',
     category: OptionsCategory,
-    showIf: groupingBool(true),
+    showIf: colGroupingBool(true),
     settings: {
       placeholder: 'Auto',
       integer: true,

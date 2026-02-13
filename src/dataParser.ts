@@ -32,7 +32,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   // set fields
   let sourceKey = options.sourceField;
   let targetKey = options.targetField;
-  let categoryKey = options.categoryField;
+  let colCategoryKey = options.colCategoryField;
   let rowCategoryKey = options.rowCategoryField;
   if (!sourceKey) {
     sourceKey = 0;
@@ -89,12 +89,12 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   let colMetadata: any[] = [];
   let colCategories: any[] = [];
 
-  if (categoryKey && options.enableGrouping) {
+  if (colCategoryKey && options.enableColGrouping) {
     // Build column -> category mapping from data
     const colToCategoryMap = new Map<string, string>();
     frame.forEach((row) => {
       const col = String(row[targetKey]);
-      const cat = row[categoryKey] != null ? String(row[categoryKey]) : 'Uncategorized';
+      const cat = row[colCategoryKey] != null ? String(row[colCategoryKey]) : 'Uncategorized';
       if (!colToCategoryMap.has(col)) {
         colToCategoryMap.set(col, cat);
       }
