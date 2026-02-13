@@ -6,7 +6,7 @@ export function matrix(
   height: number,
   options: any,
   legend: any,
-  columnMetadata: any,
+  colMetadata: any,
   colCategories: any,
   rowMetadata: any,
   rowCategories: any

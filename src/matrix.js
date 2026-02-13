@@ -16,7 +16,7 @@ import sanitizeHtml from 'sanitize-html';
  * @param {GrafanaTheme} theme
  * @param {CSSReturnValue} styles
  */
-function createViz(elem, id, height, rowNames, colNames, matrix, options, theme, legend, styles, columnMetadata, colCategories, rowMetadata, rowCategories) {
+function createViz(elem, id, height, rowNames, colNames, matrix, options, theme, legend, styles, colMetadata, colCategories, rowMetadata, rowCategories) {
   const srcText = sanitizeHtml(options.sourceText),
     targetText = sanitizeHtml(options.targetText),
     valText = sanitizeHtml(options.valueText),
@@ -668,11 +668,11 @@ const getStyles = (theme: GrafanaTheme2) => {
  * @param {number} height Height of panel
  * @return {*} A d3 callback
  */
-function matrix(rowNames, colNames, matrix, id, height, options, legend, columnMetadata, colCategories, rowMetadata, rowCategories) {
+function matrix(rowNames, colNames, matrix, id, height, options, legend, colMetadata, colCategories, rowMetadata, rowCategories) {
   const theme = useTheme2();
   const styles = useStyles2(getStyles);
   const ref = useD3((svg) => {
-    createViz(svg, id, height, rowNames, colNames, matrix, options, theme, legend, styles, columnMetadata, colCategories, rowMetadata, rowCategories);
+    createViz(svg, id, height, rowNames, colNames, matrix, options, theme, legend, styles, colMetadata, colCategories, rowMetadata, rowCategories);
   });
   return ref;
 }

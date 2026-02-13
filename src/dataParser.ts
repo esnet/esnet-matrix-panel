@@ -20,14 +20,14 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   if (series === null || series === undefined) {
     // no data, bail
     console.error('no data');
-    return { rows: null, columns: null, columnMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: null, legend: null };
+    return { rows: null, columns: null, colMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: null, legend: null };
   }
 
   const frame = new DataFrameView(series);
   if (frame === null || frame === undefined) {
     // no data, bail
     console.error('no data');
-    return { rows: null, columns: null, columnMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: null, legend: null };
+    return { rows: null, columns: null, colMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: null, legend: null };
   }
   // set fields
   let sourceKey = options.sourceField;
@@ -86,7 +86,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   let colNames = Array.from(new Set(columns)).sort();
 
   // Build column metadata and category groupings
-  let columnMetadata: any[] = [];
+  let colMetadata: any[] = [];
   let colCategories: any[] = [];
 
   if (categoryKey && options.enableGrouping) {
@@ -128,7 +128,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     // Build ColumnInfo array
     colCategories.forEach((cat: any, catIndex: number) => {
       cat.columns.forEach((colName: string, indexInCat: number) => {
-        columnMetadata.push({
+        colMetadata.push({
           name: colName,
           category: cat.name,
           categoryIndex: catIndex,
@@ -138,10 +138,10 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     });
 
     // Re-order colNames to match grouped order
-    colNames = columnMetadata.map((cm: any) => cm.name);
+    colNames = colMetadata.map((cm: any) => cm.name);
   } else {
     // No categories: create default metadata
-    columnMetadata = colNames.map((name: string, idx: number) => ({
+    colMetadata = colNames.map((name: string, idx: number) => ({
       name,
       category: '',
       categoryIndex: 0,
@@ -215,7 +215,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
 
   const numSquaresInMatrix = rowNames.length * colNames.length;
   if (numSquaresInMatrix > 50000) {
-    return { rows: null, columns: null, columnMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: 'too many inputs', legend: null };
+    return { rows: null, columns: null, colMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: 'too many inputs', legend: null };
   }
 
   //playground DELETE LATER ////////////////
@@ -298,7 +298,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   let dataObject = {
     rows: rowNames,
     columns: colNames,
-    columnMetadata: columnMetadata,
+    colMetadata: colMetadata,
     colCategories: colCategories,
     rowMetadata: rowMetadata,
     rowCategories: rowCategories,
