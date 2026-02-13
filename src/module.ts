@@ -20,6 +20,8 @@ const urlBool = (addUrl: boolean) => (config: MatrixOptions) => config.addUrl ==
 // const eurlOtherBool = (urlOther: boolean) => (config: MatrixOptions) => config.urlOther === urlOther;
 const staticBool = (inputList: boolean) => (config: MatrixOptions) => config.inputList === inputList;
 const legendBool = (showLegend: boolean) => (config: MatrixOptions) => config.showLegend === showLegend;
+const groupingBool = (enableGrouping: boolean) => (config: MatrixOptions) => config.enableGrouping === enableGrouping;
+const rowGroupingBool = (enableRowGrouping: boolean) => (config: MatrixOptions) => config.enableRowGrouping === enableRowGrouping;
 
 // const buildStandardOptions = (): any => {
 //   const options = [FieldConfigProperty.Unit, FieldConfigProperty.Color, FieldConfigProperty.Thresholds];
@@ -135,6 +137,124 @@ plugin.setPanelOptions((builder) => {
       },
     },
     // defaultValue: options[2],
+  });
+  builder.addSelect({
+    path: 'categoryField',
+    name: 'Column Category Field',
+    description: 'Select the field to use for grouping columns into categories',
+    category: RowOptions,
+    settings: {
+      allowCustomValue: false,
+      options: [],
+      getOptions: async (context: FieldOverrideContext) => {
+        const options = [{ value: '', label: 'None' }];
+        if (context && context.data) {
+          for (const frame of context.data) {
+            for (const field of frame.fields) {
+              const name = getFieldDisplayName(field, frame, context.data);
+              const value = name;
+              options.push({ value, label: name });
+            }
+          }
+        }
+        return Promise.resolve(options);
+      },
+    },
+  });
+  builder.addBooleanSwitch({
+    path: 'enableGrouping',
+    name: 'Enable Column Grouping',
+    description: 'Show category headers and group columns by category',
+    category: OptionsCategory,
+    defaultValue: false,
+  });
+  builder.addBooleanSwitch({
+    path: 'enableRowGrouping',
+    name: 'Enable Row Grouping',
+    description: 'Show row category headers and group rows by category',
+    category: OptionsCategory,
+    defaultValue: false,
+  });
+  builder.addNumberInput({
+    path: 'categoryHeaderHeight',
+    name: 'Category Header Height',
+    description: 'Height in pixels for category header labels',
+    category: OptionsCategory,
+    showIf: groupingBool(true),
+    settings: {
+      placeholder: 'Auto',
+      integer: true,
+      min: 20,
+      max: 300,
+    },
+    defaultValue: 40,
+  });
+  builder.addNumberInput({
+    path: 'categoryGap',
+    name: 'Gap Between Groups',
+    description: 'Additional spacing between category groups in pixels',
+    category: OptionsCategory,
+    showIf: groupingBool(true),
+    settings: {
+      placeholder: 'Auto',
+      integer: true,
+      min: 0,
+      max: 200,
+    },
+    defaultValue: 0,
+  });
+
+  ////////------------ Row Grouping Options ----------------/////////////
+  builder.addSelect({
+    path: 'rowCategoryField',
+    name: 'Row Category Field',
+    description: 'Select the field to use for grouping rows into categories',
+    category: RowOptions,
+    settings: {
+      allowCustomValue: false,
+      options: [],
+      getOptions: async (context: FieldOverrideContext) => {
+        const options = [{ value: '', label: 'None' }];
+        if (context && context.data) {
+          for (const frame of context.data) {
+            for (const field of frame.fields) {
+              const name = getFieldDisplayName(field, frame, context.data);
+              const value = name;
+              options.push({ value, label: name });
+            }
+          }
+        }
+        return Promise.resolve(options);
+      },
+    },
+  });
+  builder.addNumberInput({
+    path: 'rowCategoryHeaderWidth',
+    name: 'Row Category Header Width',
+    description: 'Width in pixels for row category header labels',
+    category: OptionsCategory,
+    showIf: rowGroupingBool(true),
+    settings: {
+      placeholder: 'Auto',
+      integer: true,
+      min: 50,
+      max: 300,
+    },
+    defaultValue: 100,
+  });
+  builder.addNumberInput({
+    path: 'rowCategoryGap',
+    name: 'Gap Between Row Groups',
+    description: 'Additional spacing between row groups in pixels',
+    category: OptionsCategory,
+    showIf: rowGroupingBool(true),
+    settings: {
+      placeholder: 'Auto',
+      integer: true,
+      min: 0,
+      max: 200,
+    },
+    defaultValue: 0,
   });
 
   ////////------------ General Matrix Options ----------------/////////////

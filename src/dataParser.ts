@@ -20,18 +20,20 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   if (series === null || series === undefined) {
     // no data, bail
     console.error('no data');
-    return { rows: null, columns: null, data: null, legend: null };
+    return { rows: null, columns: null, columnMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: null, legend: null };
   }
 
   const frame = new DataFrameView(series);
   if (frame === null || frame === undefined) {
     // no data, bail
     console.error('no data');
-    return { rows: null, columns: null, data: null, legend: null };
+    return { rows: null, columns: null, columnMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: null, legend: null };
   }
   // set fields
   let sourceKey = options.sourceField;
   let targetKey = options.targetField;
+  let categoryKey = options.categoryField;
+  let rowCategoryKey = options.rowCategoryField;
   if (!sourceKey) {
     sourceKey = 0;
   }
@@ -80,12 +82,140 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     });
   }
   // get unique set
-  const rowNames = Array.from(new Set(rows)).sort();
-  const colNames = Array.from(new Set(columns)).sort();
+  let rowNames = Array.from(new Set(rows)).sort();
+  let colNames = Array.from(new Set(columns)).sort();
+
+  // Build column metadata and category groupings
+  let columnMetadata: any[] = [];
+  let colCategories: any[] = [];
+
+  if (categoryKey && options.enableGrouping) {
+    // Build column -> category mapping from data
+    const colToCategoryMap = new Map<string, string>();
+    frame.forEach((row) => {
+      const col = String(row[targetKey]);
+      const cat = row[categoryKey] != null ? String(row[categoryKey]) : 'Uncategorized';
+      if (!colToCategoryMap.has(col)) {
+        colToCategoryMap.set(col, cat);
+      }
+    });
+
+    // Group columns by category
+    const categoryToColumns = new Map<string, string[]>();
+    colNames.forEach((col) => {
+      const cat = colToCategoryMap.get(col) || 'Uncategorized';
+      if (!categoryToColumns.has(cat)) {
+        categoryToColumns.set(cat, []);
+      }
+      categoryToColumns.get(cat)!.push(col);
+    });
+
+    // Build CategoryGroup array (sorted by category name)
+    const sortedCategories = Array.from(categoryToColumns.keys()).sort();
+    let globalIndex = 0;
+
+    sortedCategories.forEach((catName, catIndex) => {
+      const columnsInCat = categoryToColumns.get(catName)!;
+      colCategories.push({
+        name: catName,
+        columns: columnsInCat,
+        startIndex: globalIndex,
+        endIndex: globalIndex + columnsInCat.length - 1,
+      });
+      globalIndex += columnsInCat.length;
+    });
+
+    // Build ColumnInfo array
+    colCategories.forEach((cat: any, catIndex: number) => {
+      cat.columns.forEach((colName: string, indexInCat: number) => {
+        columnMetadata.push({
+          name: colName,
+          category: cat.name,
+          categoryIndex: catIndex,
+          indexInCategory: indexInCat,
+        });
+      });
+    });
+
+    // Re-order colNames to match grouped order
+    colNames = columnMetadata.map((cm: any) => cm.name);
+  } else {
+    // No categories: create default metadata
+    columnMetadata = colNames.map((name: string, idx: number) => ({
+      name,
+      category: '',
+      categoryIndex: 0,
+      indexInCategory: idx,
+    }));
+  }
+
+  // Build row metadata and row category groupings
+  let rowMetadata: any[] = [];
+  let rowCategories: any[] = [];
+
+  if (rowCategoryKey && options.enableRowGrouping) {
+    // Build row -> category mapping from data
+    const rowToCategoryMap = new Map<string, string>();
+    frame.forEach((row) => {
+      const rowName = String(row[sourceKey]);
+      const cat = row[rowCategoryKey] != null ? String(row[rowCategoryKey]) : 'Uncategorized';
+      if (!rowToCategoryMap.has(rowName)) {
+        rowToCategoryMap.set(rowName, cat);
+      }
+    });
+
+    // Group rows by category
+    const categoryToRows = new Map<string, string[]>();
+    rowNames.forEach((rowName) => {
+      const cat = rowToCategoryMap.get(rowName) || 'Uncategorized';
+      if (!categoryToRows.has(cat)) {
+        categoryToRows.set(cat, []);
+      }
+      categoryToRows.get(cat)!.push(rowName);
+    });
+
+    // Build RowCategoryGroup array (sorted by category name)
+    const sortedRowCategories = Array.from(categoryToRows.keys()).sort();
+    let globalRowIndex = 0;
+
+    sortedRowCategories.forEach((catName) => {
+      const rowsInCat = categoryToRows.get(catName)!;
+      rowCategories.push({
+        name: catName,
+        rows: rowsInCat,
+        startIndex: globalRowIndex,
+        endIndex: globalRowIndex + rowsInCat.length - 1,
+      });
+      globalRowIndex += rowsInCat.length;
+    });
+
+    // Build RowInfo array
+    rowCategories.forEach((cat: any, catIndex: number) => {
+      cat.rows.forEach((rowName: string, indexInCat: number) => {
+        rowMetadata.push({
+          name: rowName,
+          category: cat.name,
+          categoryIndex: catIndex,
+          indexInCategory: indexInCat,
+        });
+      });
+    });
+
+    // Re-order rowNames to match grouped order
+    rowNames = rowMetadata.map((rm: any) => rm.name);
+  } else {
+    // No row categories: create default metadata
+    rowMetadata = rowNames.map((name: string, idx: number) => ({
+      name,
+      category: '',
+      categoryIndex: 0,
+      indexInCategory: idx,
+    }));
+  }
 
   const numSquaresInMatrix = rowNames.length * colNames.length;
   if (numSquaresInMatrix > 50000) {
-    return { rows: null, columns: null, data: 'too many inputs', legend: null };
+    return { rows: null, columns: null, columnMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: 'too many inputs', legend: null };
   }
 
   //playground DELETE LATER ////////////////
@@ -116,7 +246,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     let r = rowNames.indexOf(String(row[sourceKey]));
     let c = colNames.indexOf(String(row[targetKey]));
     let v = row[valKey];
-    if (r > -1 && c > -1) {
+    if (r > -1 && c > -1 && dataMatrix[r][c] === -1) {
       dataMatrix[r][c] = {
         row: row[sourceKey],
         col: row[targetKey],
@@ -165,6 +295,15 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   }
   // console.log(legendData);
 
-  let dataObject = { rows: rowNames, columns: colNames, data: dataMatrix, legend: legendData };
+  let dataObject = {
+    rows: rowNames,
+    columns: colNames,
+    columnMetadata: columnMetadata,
+    colCategories: colCategories,
+    rowMetadata: rowMetadata,
+    rowCategories: rowCategories,
+    data: dataMatrix,
+    legend: legendData,
+  };
   return dataObject;
 }

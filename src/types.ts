@@ -2,6 +2,14 @@ export interface MatrixOptions {
   sourceField: string;
   targetField: string;
   valueField: string;
+  categoryField: string;
+  enableGrouping: boolean;
+  categoryHeaderHeight: number;
+  categoryGap: number;
+  rowCategoryField: string;
+  enableRowGrouping: boolean;
+  rowCategoryHeaderWidth: number;
+  rowCategoryGap: number;
   cellSize: number;
   cellPadding: number;
   txtLength: number;
