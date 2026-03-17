@@ -143,6 +143,7 @@ plugin.setPanelOptions((builder) => {
     name: 'Column Category Field',
     description: 'Select the field to use for grouping columns into categories',
     category: RowOptions,
+    showIf: colGroupingBool(true),
     settings: {
       allowCustomValue: false,
       options: [],
@@ -210,6 +211,7 @@ plugin.setPanelOptions((builder) => {
     name: 'Row Category Field',
     description: 'Select the field to use for grouping rows into categories',
     category: RowOptions,
+    showIf: rowGroupingBool(true),
     settings: {
       allowCustomValue: false,
       options: [],
