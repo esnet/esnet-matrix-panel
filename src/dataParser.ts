@@ -218,25 +218,6 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     return { rows: null, columns: null, colMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: 'too many inputs', legend: null };
   }
 
-  //playground DELETE LATER ////////////////
-  // let tempvals = frame.fields[valKey];
-  // let min = 0;
-  // let max = 0;
-  // if (tempvals.state) {
-  //   if(tempvals.state.range) {
-  //     if(tempvals.state.range.min) {
-  //     min = tempvals.state.range.min;
-  //     }
-  //     if (tempvals.state.range.max) {
-  //       max = tempvals.state.range.max;
-  //     }
-  //   }
-  // }
-  // console.log(`min: ${min} max: ${max}`);
-
-  ////////////////////////////
-
-  // console.log(options);
   // create data matrix
   let dataMatrix: any[][] = [];
   for (let i = 0; i < rowNames.length; i++) {
@@ -260,11 +241,9 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   // parse data for legend
   let legendData: any[] = [];
   if (options.showLegend) {
-    
-    // let allVals = frame.fields[valKey].values;
     let tempValues: any[] = [];
     if (options.legendType === 'range') { 
-      //get min & max, steps
+      // get min & max, steps
       let allValues: number[] = Object.values(frame.fields[valKey].values);
       let thisMin = Math.min(...allValues);
       let thisMax = Math.max(...allValues);
@@ -293,7 +272,6 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
         });
     });
   }
-  // console.log(legendData);
 
   let dataObject = {
     rows: rowNames,

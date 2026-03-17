@@ -38,7 +38,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     return;
   }
 
-  //find the length of the longest name. this will inform the margin and name truncation
+  // find the length of the longest name. this will inform the margin and name truncation
   var longestColName = colNames.reduce((a, b) => {
     return a.length > b.length ? a : b;
   });
@@ -46,17 +46,17 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     return a.length > b.length ? a : b;
   });
 
-  //txtLength is passed in. but names may be much smaller than this value.
-  //since this informs the margin we want to set it to whichever is longer
-  //this prevents a huge white space if txtlength is considerably bigger
-  //than the longest name. add 3 characters to account for ellipsis (...)
+  // txtLength is passed in. but names may be much smaller than this value.
+  // since this informs the margin we want to set it to whichever is longer
+  // this prevents a huge white space if txtlength is considerably bigger
+  // than the longest name. add 3 characters to account for ellipsis (...)
   const maxColTxtLength = longestColName.length < txtLength ? longestColName.length : txtLength + 3;
   const maxRowTxtLength = longestRowName.length < txtLength ? longestRowName.length : txtLength + 3;
 
-  //the user settable value cellsize controls the size of the svg.
+  // the user settable value cellsize controls the size of the svg.
   // var size = names.length * cellSize;
 
-  //calculate the margins needed
+  // Calculate the margins needed
   var colTxtOffset = maxColTxtLength * txtSize * 5 + 25;
   var rowTxtOffset = maxRowTxtLength * txtSize * 5 + 25;
 
