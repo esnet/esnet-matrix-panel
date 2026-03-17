@@ -65,7 +65,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     ? (options.colCategoryHeaderHeight !== undefined ? options.colCategoryHeaderHeight : 40)
     : 0;
   const colCategoryGap = options.enableColGrouping && colCategories && colCategories.length > 0
-    ? (options.colCategoryGap !== undefined ? options.colCategoryGap : 0)
+    ? (options.colCategoryGap !== undefined ? options.colCategoryGap : 2)
     : 0;
 
   // Calculate column positions with gaps between colCategories
@@ -112,7 +112,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     ? (options.rowCategoryHeaderWidth !== undefined ? options.rowCategoryHeaderWidth : 100)
     : 0;
   const rowCategoryGap = options.enableRowGrouping && rowCategories && rowCategories.length > 0
-    ? (options.rowCategoryGap !== undefined ? options.rowCategoryGap : 0)
+    ? (options.rowCategoryGap !== undefined ? options.rowCategoryGap : 2)
     : 0;
 
   // Calculate row positions with gaps between colCategories

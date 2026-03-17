@@ -201,7 +201,7 @@ plugin.setPanelOptions((builder) => {
       min: 0,
       max: 200,
     },
-    defaultValue: 0,
+    defaultValue: 2,
   });
 
   ////////------------ Row Grouping Options ----------------/////////////
@@ -254,7 +254,7 @@ plugin.setPanelOptions((builder) => {
       min: 0,
       max: 200,
     },
-    defaultValue: 0,
+    defaultValue: 2,
   });
 
   ////////------------ General Matrix Options ----------------/////////////
