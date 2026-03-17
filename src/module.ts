@@ -187,7 +187,7 @@ plugin.setPanelOptions((builder) => {
       min: 20,
       max: 300,
     },
-    defaultValue: 40,
+    defaultValue: 100,
   });
   builder.addNumberInput({
     path: 'colCategoryGap',
@@ -201,7 +201,7 @@ plugin.setPanelOptions((builder) => {
       min: 0,
       max: 200,
     },
-    defaultValue: 2,
+    defaultValue: 4,
   });
 
   ////////------------ Row Grouping Options ----------------/////////////
@@ -254,7 +254,7 @@ plugin.setPanelOptions((builder) => {
       min: 0,
       max: 200,
     },
-    defaultValue: 2,
+    defaultValue: 4,
   });
 
   ////////------------ General Matrix Options ----------------/////////////

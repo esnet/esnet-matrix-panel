@@ -65,7 +65,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     ? (options.colCategoryHeaderHeight !== undefined ? options.colCategoryHeaderHeight : 40)
     : 0;
   const colCategoryGap = options.enableColGrouping && colCategories && colCategories.length > 0
-    ? (options.colCategoryGap !== undefined ? options.colCategoryGap : 2)
+    ? (options.colCategoryGap !== undefined ? options.colCategoryGap : 4)
     : 0;
 
   // Calculate column positions with gaps between colCategories
@@ -112,7 +112,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     ? (options.rowCategoryHeaderWidth !== undefined ? options.rowCategoryHeaderWidth : 100)
     : 0;
   const rowCategoryGap = options.enableRowGrouping && rowCategories && rowCategories.length > 0
-    ? (options.rowCategoryGap !== undefined ? options.rowCategoryGap : 2)
+    ? (options.rowCategoryGap !== undefined ? options.rowCategoryGap : 4)
     : 0;
 
   // Calculate row positions with gaps between colCategories
@@ -280,7 +280,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
 
         // Category label rotated vertically (like column labels)
         categoryHeaderGroup.append('text')
-          .attr('transform', `translate(${groupX + groupWidth / 2}, ${colCategoryHeaderHeight - 12})rotate(-90)`)
+          .attr('transform', `translate(${groupX + cellSize / 2}, ${colCategoryHeaderHeight - 12})rotate(-90)`)
           .attr('text-anchor', 'start')
           .attr('font-size', (txtSize * 1.2) + 'em')
           .attr('font-weight', 'bold')
@@ -325,7 +325,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
         // Horizontal labels
         rowCategoryHeaderGroup.append('text')
           .attr('x', rowCategoryHeaderWidth / 2)
-          .attr('y', groupY + groupHeight / 2)
+          .attr('y', groupY + cellSize / 2)
           .attr('text-anchor', 'middle')
           .attr('dominant-baseline', 'middle')
           .attr('font-size', (txtSize * 1.2) + 'em')
