@@ -322,9 +322,9 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
 
         // Horizontal labels
         rowCategoryHeaderGroup.append('text')
-          .attr('x', rowCategoryHeaderWidth / 2)
+          .attr('x', rowCategoryHeaderWidth)
           .attr('y', groupY + cellSize / 2)
-          .attr('text-anchor', 'middle')
+          .attr('text-anchor', 'end')
           .attr('dominant-baseline', 'middle')
           .attr('font-size', (txtSize * 1.2) + 'em')
           .attr('font-weight', 'bold')
