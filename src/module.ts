@@ -179,8 +179,8 @@ plugin.setPanelOptions((builder) => {
   });
   builder.addNumberInput({
     path: 'colCategoryHeaderHeight',
-    name: 'Category Header Height',
-    description: 'Height in pixels for category header labels',
+    name: 'Column Groups Header Height',
+    description: 'Space in pixels above the matrix reserved for column group labels',
     category: OptionsCategory,
     showIf: colGroupingBool(true),
     settings: {
@@ -234,7 +234,7 @@ plugin.setPanelOptions((builder) => {
   builder.addNumberInput({
     path: 'rowCategoryHeaderWidth',
     name: 'Row Category Header Width',
-    description: 'Width in pixels for row category header labels',
+    description: 'Space in pixels to the left reserved for row group labels',
     category: OptionsCategory,
     showIf: rowGroupingBool(true),
     settings: {
@@ -317,7 +317,7 @@ plugin.setPanelOptions((builder) => {
 
   builder.addTextInput({
     path: 'valueText',
-    name: 'value Text',
+    name: 'Value Text',
     description: 'The text to be displayed in the tooltip.',
     category: OptionsCategory,
     defaultValue: 'Value',
@@ -355,7 +355,7 @@ plugin.setPanelOptions((builder) => {
   builder.addNumberInput({
     path: 'txtLength',
     name: 'Text Length',
-    description: 'adjust amount of space used for labels',
+    description: 'Maximum number of characters to display before truncating labels',
     category: OptionsCategory,
     settings: {
       placeholder: 'Auto',
