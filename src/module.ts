@@ -127,16 +127,17 @@ plugin.setPanelOptions((builder) => {
         if (context && context.data) {
           for (const frame of context.data) {
             for (const field of frame.fields) {
-              const name = getFieldDisplayName(field, frame, context.data);
-              const value = name;
-              options.push({ value, label: name });
+              if (field.type === 'number') {
+                const name = getFieldDisplayName(field, frame, context.data);
+                const value = name;
+                options.push({ value, label: name });
+              }
             }
           }
         }
         return Promise.resolve(options);
       },
     },
-    // defaultValue: options[2],
   });
   builder.addSelect({
     path: 'colCategoryField',
@@ -260,6 +261,24 @@ plugin.setPanelOptions((builder) => {
   });
 
   ////////------------ General Matrix Options ----------------/////////////
+  builder.addSelect({
+    path: 'aggregationMethod',
+    name: 'Aggregation Method',
+    description: 'How to aggregate values when multiple data points map to the same cell',
+    category: OptionsCategory,
+    showIf: (config: MatrixOptions) => config.enableColGrouping || config.enableRowGrouping,
+    defaultValue: 'sum',
+    settings: {
+      allowCustomValue: false,
+      options: [
+        { value: 'sum', label: 'Sum' },
+        { value: 'avg', label: 'Average' },
+        { value: 'min', label: 'Min' },
+        { value: 'max', label: 'Max' },
+        { value: 'last', label: 'Last' },
+      ],
+    },
+  });
   builder.addBooleanSwitch({
     path: 'showLegend',
     name: 'Show Legend',

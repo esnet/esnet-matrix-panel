@@ -180,12 +180,10 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
   // Build X scales and axis:
-  // Create custom scale function that maps column names to x positions
-  var x = function(colName) {
-    const pos = columnPositions.find(cp => cp.name === colName);
-    return pos ? pos.x : 0;
+  // Index-based scale to support duplicate column names across categories
+  var x = function(colIndex) {
+    return columnPositions[colIndex] ? columnPositions[colIndex].x : 0;
   };
-  // Add bandwidth method for compatibility
   x.bandwidth = function() {
     return cellSize * (1 - cellPadding);
   };
@@ -223,9 +221,9 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   });
 
   // Build Y scales and axis:
-  var y = function(rowName) {
-    const pos = rowPositions.find(rp => rp.name === rowName);
-    return pos ? pos.y : 0;
+  // Index-based scale to support duplicate row names across categories
+  var y = function(rowIndex) {
+    return rowPositions[rowIndex] ? rowPositions[rowIndex].y : 0;
   };
   y.bandwidth = function() {
     return cellSize * (1 - cellPadding);
@@ -271,8 +269,8 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
       .attr('transform', `translate(0, ${-colTxtOffset - colCategoryHeaderHeight})`);
 
     colCategories.forEach((category, catIndex) => {
-      const startPos = columnPositions.find(cp => cp.name === category.columns[0]);
-      const endPos = columnPositions.find(cp => cp.name === category.columns[category.columns.length - 1]);
+      const startPos = columnPositions[category.startIndex];
+      const endPos = columnPositions[category.endIndex];
 
       if (startPos && endPos) {
         const groupX = startPos.x;
@@ -315,8 +313,8 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
       .attr('transform', `translate(${-rowTxtOffset - rowCategoryHeaderWidth}, 0)`);
 
     rowCategories.forEach((category, catIndex) => {
-      const startPos = rowPositions.find(rp => rp.name === category.rows[0]);
-      const endPos = rowPositions.find(rp => rp.name === category.rows[category.rows.length - 1]);
+      const startPos = rowPositions[category.startIndex];
+      const endPos = rowPositions[category.endIndex];
 
       if (startPos && endPos) {
         const groupY = startPos.y;
@@ -392,11 +390,11 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     .append('rect')
     .attr('id', `rect-${id}`)
     .attr('x', function (d, i, j) {
-      return x(colNames[i]);
+      return x(i);
     })
     .attr('y', function (d, i, j) {
       var outer_counter = outer.get(this);
-      return y(rowNames[outer_counter]);
+      return y(outer_counter);
     })
     .attr('width', x.bandwidth())
     .attr('height', y.bandwidth())

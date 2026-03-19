@@ -1,7 +1,5 @@
 import { DataFrameView } from '@grafana/data';
 
-// import { legend } from 'matrixLegend';
-
 /**
  * this function creates an adjacency matrix to be consumed by the chord
  * function returns the matrix + forward and reverse lookup Maps to go from
@@ -64,68 +62,104 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     }
   }
 
-  // Make Row and Column Lists
-  let rows: any[] = [];
-  let columns: any[] = [];
-  // let uniqueVals: any[] = [];
+  // Aggregation helper
+  const colGrouping = !!(colCategoryKey && options.enableColGrouping);
+  const rowGrouping = !!(rowCategoryKey && options.enableRowGrouping);
+
+  // Aggregation function to combine multiple values for the same cell based on user-selected method
+  // By default: aggregate is set to "sum"
+  // Falls back to "last" for non-numeric values (strings, etc.)
+  function aggregate(values: any[], method: string): any {
+    if (values.length === 0) {
+      return null;
+    }
+    // For non-numeric values, only "last" is meaningful
+    if (typeof values[0] !== 'number') {
+      return values[values.length - 1];
+    }
+    switch (method) {
+      case 'sum': return values.reduce((a: number, b: number) => a + b, 0);
+      case 'avg': return values.reduce((a: number, b: number) => a + b, 0) / values.length;
+      case 'min': return Math.min(...values);
+      case 'max': return Math.max(...values);
+      case 'last': return values[values.length - 1];
+      default: return values.reduce((a: number, b: number) => a + b, 0);
+    }
+  }
+
+  // Build composite keys from data
+  // When grouping is enabled, use "category::name" as the key to allow
+  // the same name in multiple categories. Otherwise, just use the name.
+  let compositeColKeys: string[] = [];
+  let compositeRowKeys: string[] = [];
 
   // IF static list toggle is set, use input list
   if (options.inputList) {
-    rows = options.staticRows.split(',');
-    columns = options.staticColumns.split(',');
+    const staticRows = options.staticRows.split(',');
+    const staticCols = options.staticColumns.split(',');
+    compositeRowKeys = Array.from(new Set(staticRows));
+    compositeColKeys = Array.from(new Set(staticCols));
   } else {
-    // ELSE  Make new arrays from unique set of row and column axis labels
-    // find all axis labels
+    // Build unique composite keys from data
+    const colKeySet = new Set<string>();
+    const rowKeySet = new Set<string>();
+
     frame.forEach((row) => {
-      rows.push(String(row[sourceKey]));
-      columns.push(String(row[targetKey]));
+      const rowName = String(row[sourceKey]);
+      const colName = String(row[targetKey]);
+      const colCat = colGrouping && row[colCategoryKey] != null ? String(row[colCategoryKey]) : '';
+      const rowCat = rowGrouping && row[rowCategoryKey] != null ? String(row[rowCategoryKey]) : '';
+
+      const colKey = colGrouping ? `${colCat}::${colName}` : colName;
+      const rowKey = rowGrouping ? `${rowCat}::${rowName}` : rowName;
+
+      colKeySet.add(colKey);
+      rowKeySet.add(rowKey);
     });
+
+    compositeColKeys = Array.from(colKeySet).sort();
+    compositeRowKeys = Array.from(rowKeySet).sort();
   }
-  // get unique set
-  let rowNames = Array.from(new Set(rows)).sort();
-  let colNames = Array.from(new Set(columns)).sort();
+
+  // Extract display names from composite keys
+  let colNames = compositeColKeys.map((k) => colGrouping && k.includes('::') ? k.split('::').slice(1).join('::') : k);
+  let rowNames = compositeRowKeys.map((k) => rowGrouping && k.includes('::') ? k.split('::').slice(1).join('::') : k);
 
   // Build column metadata and category groupings
   let colMetadata: any[] = [];
   let colCategories: any[] = [];
 
-  if (colCategoryKey && options.enableColGrouping) {
-    // Build column -> category mapping from data
-    const colToCategoryMap = new Map<string, string>();
-    frame.forEach((row) => {
-      const col = String(row[targetKey]);
-      const cat = row[colCategoryKey] != null ? String(row[colCategoryKey]) : 'Uncategorized';
-      if (!colToCategoryMap.has(col)) {
-        colToCategoryMap.set(col, cat);
-      }
-    });
+  if (colGrouping) {
+    // Group columns by category using composite keys
+    const categoryToColumns = new Map<string, Array<{ name: string; key: string }>>();
 
-    // Group columns by category
-    const categoryToColumns = new Map<string, string[]>();
-    colNames.forEach((col) => {
-      const cat = colToCategoryMap.get(col) || 'Uncategorized';
+    compositeColKeys.forEach((key) => {
+      const [cat, ...nameParts] = key.split('::');
+      const name = nameParts.join('::');
       if (!categoryToColumns.has(cat)) {
         categoryToColumns.set(cat, []);
       }
-      categoryToColumns.get(cat)!.push(col);
+      categoryToColumns.get(cat)!.push({ name, key });
     });
 
     // Build CategoryGroup array (sorted by category name)
     const sortedCategories = Array.from(categoryToColumns.keys()).sort();
     let globalIndex = 0;
 
-    sortedCategories.forEach((catName, catIndex) => {
+    sortedCategories.forEach((catName) => {
       const columnsInCat = categoryToColumns.get(catName)!;
       colCategories.push({
         name: catName,
-        columns: columnsInCat,
+        columns: columnsInCat.map((c) => c.name),
         startIndex: globalIndex,
         endIndex: globalIndex + columnsInCat.length - 1,
       });
       globalIndex += columnsInCat.length;
     });
 
-    // Build ColumnInfo array
+    // Build ColumnInfo array and re-order colNames/compositeColKeys to match grouped order
+    const reorderedColKeys: string[] = [];
+    const reorderedColNames: string[] = [];
     colCategories.forEach((cat: any, catIndex: number) => {
       cat.columns.forEach((colName: string, indexInCat: number) => {
         colMetadata.push({
@@ -134,11 +168,13 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
           categoryIndex: catIndex,
           indexInCategory: indexInCat,
         });
+        reorderedColKeys.push(`${cat.name}::${colName}`);
+        reorderedColNames.push(colName);
       });
     });
 
-    // Re-order colNames to match grouped order
-    colNames = colMetadata.map((cm: any) => cm.name);
+    compositeColKeys = reorderedColKeys;
+    colNames = reorderedColNames;
   } else {
     // No categories: create default metadata
     colMetadata = colNames.map((name: string, idx: number) => ({
@@ -153,25 +189,17 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   let rowMetadata: any[] = [];
   let rowCategories: any[] = [];
 
-  if (rowCategoryKey && options.enableRowGrouping) {
-    // Build row -> category mapping from data
-    const rowToCategoryMap = new Map<string, string>();
-    frame.forEach((row) => {
-      const rowName = String(row[sourceKey]);
-      const cat = row[rowCategoryKey] != null ? String(row[rowCategoryKey]) : 'Uncategorized';
-      if (!rowToCategoryMap.has(rowName)) {
-        rowToCategoryMap.set(rowName, cat);
-      }
-    });
+  if (rowGrouping) {
+    // Group rows by category using composite keys
+    const categoryToRows = new Map<string, Array<{ name: string; key: string }>>();
 
-    // Group rows by category
-    const categoryToRows = new Map<string, string[]>();
-    rowNames.forEach((rowName) => {
-      const cat = rowToCategoryMap.get(rowName) || 'Uncategorized';
+    compositeRowKeys.forEach((key) => {
+      const [cat, ...nameParts] = key.split('::');
+      const name = nameParts.join('::');
       if (!categoryToRows.has(cat)) {
         categoryToRows.set(cat, []);
       }
-      categoryToRows.get(cat)!.push(rowName);
+      categoryToRows.get(cat)!.push({ name, key });
     });
 
     // Build RowCategoryGroup array (sorted by category name)
@@ -182,14 +210,16 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
       const rowsInCat = categoryToRows.get(catName)!;
       rowCategories.push({
         name: catName,
-        rows: rowsInCat,
+        rows: rowsInCat.map((r) => r.name),
         startIndex: globalRowIndex,
         endIndex: globalRowIndex + rowsInCat.length - 1,
       });
       globalRowIndex += rowsInCat.length;
     });
 
-    // Build RowInfo array
+    // Build RowInfo array and re-order rowNames/compositeRowKeys to match grouped order
+    const reorderedRowKeys: string[] = [];
+    const reorderedRowNames: string[] = [];
     rowCategories.forEach((cat: any, catIndex: number) => {
       cat.rows.forEach((rowName: string, indexInCat: number) => {
         rowMetadata.push({
@@ -198,11 +228,13 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
           categoryIndex: catIndex,
           indexInCategory: indexInCat,
         });
+        reorderedRowKeys.push(`${cat.name}::${rowName}`);
+        reorderedRowNames.push(rowName);
       });
     });
 
-    // Re-order rowNames to match grouped order
-    rowNames = rowMetadata.map((rm: any) => rm.name);
+    compositeRowKeys = reorderedRowKeys;
+    rowNames = reorderedRowNames;
   } else {
     // No row categories: create default metadata
     rowMetadata = rowNames.map((name: string, idx: number) => ({
@@ -218,24 +250,49 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     return { rows: null, columns: null, colMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: 'too many inputs', legend: null };
   }
 
-  // create data matrix
+  // Phase 1: Collect all values per cell using composite keys
+  const cellValues = new Map<string, number[]>();
+
+  frame.forEach((row) => {
+    const rowName = String(row[sourceKey]);
+    const colName = String(row[targetKey]);
+    const colCat = colGrouping && row[colCategoryKey] != null ? String(row[colCategoryKey]) : '';
+    const rowCat = rowGrouping && row[rowCategoryKey] != null ? String(row[rowCategoryKey]) : '';
+
+    const colKey = colGrouping ? `${colCat}::${colName}` : colName;
+    const rowKey = rowGrouping ? `${rowCat}::${rowName}` : rowName;
+
+    const r = compositeRowKeys.indexOf(rowKey);
+    const c = compositeColKeys.indexOf(colKey);
+    const v = row[valKey];
+
+    if (r > -1 && c > -1 && v != null) {
+      const cellKey = `${r}:${c}`;
+      if (!cellValues.has(cellKey)) {
+        cellValues.set(cellKey, []);
+      }
+      cellValues.get(cellKey)!.push(v);
+    }
+  });
+
+  // Phase 2: Aggregate values and build data matrix
   let dataMatrix: any[][] = [];
   for (let i = 0; i < rowNames.length; i++) {
     dataMatrix.push(new Array(colNames.length).fill(-1));
   }
-  frame.forEach((row) => {
-    let r = rowNames.indexOf(String(row[sourceKey]));
-    let c = colNames.indexOf(String(row[targetKey]));
-    let v = row[valKey];
-    if (r > -1 && c > -1 && dataMatrix[r][c] === -1) {
-      dataMatrix[r][c] = {
-        row: row[sourceKey],
-        col: row[targetKey],
-        val: v,
-        color: colorMap(v),
-        display: valueField[0].display(v),
-      };
-    }
+
+  const aggMethod = options.aggregationMethod || 'sum';
+
+  cellValues.forEach((values, cellKey) => {
+    const [r, c] = cellKey.split(':').map(Number);
+    const v = values.length === 1 ? values[0] : aggregate(values, aggMethod);
+    dataMatrix[r][c] = {
+      row: rowNames[r],
+      col: colNames[c],
+      val: v,
+      color: colorMap(v),
+      display: valueField[0].display(v),
+    };
   });
 
   // parse data for legend

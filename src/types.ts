@@ -28,6 +28,7 @@ export interface MatrixOptions {
   inputList: boolean;
   staticRows: string[];
   staticColumns: string[];
+  aggregationMethod: string;
   showLegend: boolean;
   legendType: string;
   thresholds: any[];
