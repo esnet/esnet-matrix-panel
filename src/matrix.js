@@ -53,12 +53,11 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   const maxColTxtLength = longestColName.length < txtLength ? longestColName.length : txtLength + 3;
   const maxRowTxtLength = longestRowName.length < txtLength ? longestRowName.length : txtLength + 3;
 
-  // the user settable value cellsize controls the size of the svg.
-  // var size = names.length * cellSize;
-
   // Calculate the margins needed
-  var colTxtOffset = maxColTxtLength * txtSize * 5 + 25;
-  var rowTxtOffset = maxRowTxtLength * txtSize * 5 + 25;
+  var colTxtOffset = maxColTxtLength * txtSize *                                                
+    (options.enableColGrouping && colCategories && colCategories.length > 0 ? 8 : 5) + 25;
+  var rowTxtOffset = maxRowTxtLength * txtSize *
+    (options.enableRowGrouping && rowCategories && rowCategories.length > 0 ? 8 : 5) + 25;
 
   // Category header configuration
   const colCategoryHeaderHeight = options.enableColGrouping && colCategories && colCategories.length > 0
@@ -276,7 +275,8 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
         const groupX = startPos.x;
         const groupWidth = (endPos.x + cellSize) - startPos.x;
 
-        // Category label rotated vertically (like column labels)
+        // Category label rotated vertically; truncated to fit colCategoryHeaderHeight.
+        const colGroupLabelMaxChars = Math.max(3, Math.floor((colCategoryHeaderHeight - 12) / (txtSize * 1.2 * 8)));
         categoryHeaderGroup.append('text')
           .attr('transform', `translate(${groupX + cellSize / 2}, ${colCategoryHeaderHeight - 12})rotate(-90)`)
           .attr('text-anchor', 'start')
@@ -285,6 +285,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
           .attr('fill', theme.colors.text.primary)
           .style('font-family', theme.typography.fontFamily)
           .text(category.name)
+          .call(truncateLabel, colGroupLabelMaxChars)
           .on('mouseover', function (event, d) {
             tooltip
               .html(sanitizeHtml(category.name))
@@ -320,9 +321,11 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
         const groupY = startPos.y;
         const groupHeight = (endPos.y + cellSize) - startPos.y;
 
-        // Horizontal labels
+        // Group label: right-aligned so text grows leftward into rowCategoryHeaderWidth.
+        // Truncated when wider than the allocated area; tooltip shows full name.
+        const groupLabelMaxChars = Math.max(3, Math.floor((rowCategoryHeaderWidth - 10) / (txtSize * 1.2 * 8)));
         rowCategoryHeaderGroup.append('text')
-          .attr('x', rowCategoryHeaderWidth)
+          .attr('x', rowCategoryHeaderWidth - 5)
           .attr('y', groupY + cellSize / 2)
           .attr('text-anchor', 'end')
           .attr('dominant-baseline', 'middle')
@@ -331,6 +334,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
           .attr('fill', theme.colors.text.primary)
           .style('font-family', theme.typography.fontFamily)
           .text(category.name)
+          .call(truncateLabel, groupLabelMaxChars)
           .on('mouseover', function (event, d) {
             tooltip
               .html(sanitizeHtml(category.name))
