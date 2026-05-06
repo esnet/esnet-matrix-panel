@@ -3,10 +3,8 @@ import { PanelProps } from '@grafana/data';
 import { MatrixOptions } from 'types';
 import { parseData } from 'dataParser';
 import { useTheme2, CustomScrollbar } from '@grafana/ui';
-// import { useTheme2 } from '@grafana/ui';
 
 import * as Matrix from './matrix.js';
-// import * as Legend from 'matrixLegend.js';
 
 interface Props extends PanelProps<MatrixOptions> {
   fieldConfig: any;
