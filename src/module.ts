@@ -20,6 +20,8 @@ const urlBool = (addUrl: boolean) => (config: MatrixOptions) => config.addUrl ==
 // const eurlOtherBool = (urlOther: boolean) => (config: MatrixOptions) => config.urlOther === urlOther;
 const staticBool = (inputList: boolean) => (config: MatrixOptions) => config.inputList === inputList;
 const legendBool = (showLegend: boolean) => (config: MatrixOptions) => config.showLegend === showLegend;
+const colGroupingBool = (enableColGrouping: boolean) => (config: MatrixOptions) => config.enableColGrouping === enableColGrouping;
+const rowGroupingBool = (enableRowGrouping: boolean) => (config: MatrixOptions) => config.enableRowGrouping === enableRowGrouping;
 
 // const buildStandardOptions = (): any => {
 //   const options = [FieldConfigProperty.Unit, FieldConfigProperty.Color, FieldConfigProperty.Thresholds];
@@ -125,6 +127,32 @@ plugin.setPanelOptions((builder) => {
         if (context && context.data) {
           for (const frame of context.data) {
             for (const field of frame.fields) {
+              if (field.type === 'number') {
+                const name = getFieldDisplayName(field, frame, context.data);
+                const value = name;
+                options.push({ value, label: name });
+              }
+            }
+          }
+        }
+        return Promise.resolve(options);
+      },
+    },
+  });
+  builder.addSelect({
+    path: 'colCategoryField',
+    name: 'Column Category Field',
+    description: 'Select the field to use for grouping columns into categories',
+    category: RowOptions,
+    showIf: colGroupingBool(true),
+    settings: {
+      allowCustomValue: false,
+      options: [],
+      getOptions: async (context: FieldOverrideContext) => {
+        const options = [{ value: '', label: 'None' }];
+        if (context && context.data) {
+          for (const frame of context.data) {
+            for (const field of frame.fields) {
               const name = getFieldDisplayName(field, frame, context.data);
               const value = name;
               options.push({ value, label: name });
@@ -134,10 +162,123 @@ plugin.setPanelOptions((builder) => {
         return Promise.resolve(options);
       },
     },
-    // defaultValue: options[2],
+  });
+  builder.addBooleanSwitch({
+    path: 'enableColGrouping',
+    name: 'Enable Column Grouping',
+    description: 'Show category headers and group columns by category',
+    category: OptionsCategory,
+    defaultValue: false,
+  });
+  builder.addBooleanSwitch({
+    path: 'enableRowGrouping',
+    name: 'Enable Row Grouping',
+    description: 'Show row category headers and group rows by category',
+    category: OptionsCategory,
+    defaultValue: false,
+  });
+  builder.addNumberInput({
+    path: 'colCategoryHeaderHeight',
+    name: 'Column Groups Header Height',
+    description: 'Space in pixels above the matrix reserved for column group labels',
+    category: OptionsCategory,
+    showIf: colGroupingBool(true),
+    settings: {
+      placeholder: 'Auto',
+      integer: true,
+      min: 20,
+      max: 300,
+    },
+    defaultValue: 100,
+  });
+  builder.addNumberInput({
+    path: 'colCategoryGap',
+    name: 'Gap Between Groups',
+    description: 'Additional spacing between category groups in pixels',
+    category: OptionsCategory,
+    showIf: colGroupingBool(true),
+    settings: {
+      placeholder: 'Auto',
+      integer: true,
+      min: 0,
+      max: 200,
+    },
+    defaultValue: 4,
+  });
+
+  ////////------------ Row Grouping Options ----------------/////////////
+  builder.addSelect({
+    path: 'rowCategoryField',
+    name: 'Row Category Field',
+    description: 'Select the field to use for grouping rows into categories',
+    category: RowOptions,
+    showIf: rowGroupingBool(true),
+    settings: {
+      allowCustomValue: false,
+      options: [],
+      getOptions: async (context: FieldOverrideContext) => {
+        const options = [{ value: '', label: 'None' }];
+        if (context && context.data) {
+          for (const frame of context.data) {
+            for (const field of frame.fields) {
+              const name = getFieldDisplayName(field, frame, context.data);
+              const value = name;
+              options.push({ value, label: name });
+            }
+          }
+        }
+        return Promise.resolve(options);
+      },
+    },
+  });
+  builder.addNumberInput({
+    path: 'rowCategoryHeaderWidth',
+    name: 'Row Category Header Width',
+    description: 'Space in pixels to the left reserved for row group labels',
+    category: OptionsCategory,
+    showIf: rowGroupingBool(true),
+    settings: {
+      placeholder: 'Auto',
+      integer: true,
+      min: 50,
+      max: 300,
+    },
+    defaultValue: 100,
+  });
+  builder.addNumberInput({
+    path: 'rowCategoryGap',
+    name: 'Gap Between Row Groups',
+    description: 'Additional spacing between row groups in pixels',
+    category: OptionsCategory,
+    showIf: rowGroupingBool(true),
+    settings: {
+      placeholder: 'Auto',
+      integer: true,
+      min: 0,
+      max: 200,
+    },
+    defaultValue: 4,
   });
 
   ////////------------ General Matrix Options ----------------/////////////
+  builder.addSelect({
+    path: 'aggregationMethod',
+    name: 'Aggregation Method',
+    description: 'How to aggregate values when multiple data points map to the same cell',
+    category: OptionsCategory,
+    showIf: (config: MatrixOptions) => config.enableColGrouping || config.enableRowGrouping,
+    defaultValue: 'sum',
+    settings: {
+      allowCustomValue: false,
+      options: [
+        { value: 'sum', label: 'Sum' },
+        { value: 'avg', label: 'Average' },
+        { value: 'min', label: 'Min' },
+        { value: 'max', label: 'Max' },
+        { value: 'last', label: 'Last' },
+      ],
+    },
+  });
   builder.addBooleanSwitch({
     path: 'showLegend',
     name: 'Show Legend',
@@ -176,7 +317,7 @@ plugin.setPanelOptions((builder) => {
 
   builder.addTextInput({
     path: 'valueText',
-    name: 'value Text',
+    name: 'Value Text',
     description: 'The text to be displayed in the tooltip.',
     category: OptionsCategory,
     defaultValue: 'Value',
@@ -214,7 +355,7 @@ plugin.setPanelOptions((builder) => {
   builder.addNumberInput({
     path: 'txtLength',
     name: 'Text Length',
-    description: 'adjust amount of space used for labels',
+    description: 'Maximum number of characters to display before truncating labels',
     category: OptionsCategory,
     settings: {
       placeholder: 'Auto',

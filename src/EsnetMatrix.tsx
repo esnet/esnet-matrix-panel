@@ -3,10 +3,8 @@ import { PanelProps } from '@grafana/data';
 import { MatrixOptions } from 'types';
 import { parseData } from 'dataParser';
 import { useTheme2, CustomScrollbar } from '@grafana/ui';
-// import { useTheme2 } from '@grafana/ui';
 
 import * as Matrix from './matrix.js';
-// import * as Legend from 'matrixLegend.js';
 
 interface Props extends PanelProps<MatrixOptions> {
   fieldConfig: any;
@@ -31,7 +29,19 @@ export const EsnetMatrix: React.FC<Props> = ({ options, data, width, height, id 
     return <div>No Data</div>;
   }
 
-  const ref = Matrix.matrix(parsedData.rows, parsedData.columns, parsedData.data, id, height, options, parsedData.legend);
+  const ref = Matrix.matrix(
+    parsedData.rows,
+    parsedData.columns,
+    parsedData.data,
+    id,
+    height,
+    options,
+    parsedData.legend,
+    parsedData.colMetadata,
+    parsedData.colCategories,
+    parsedData.rowMetadata,
+    parsedData.rowCategories
+  );
   const thisPanelClass = `matrix-panel-${id}`;
 
   return (

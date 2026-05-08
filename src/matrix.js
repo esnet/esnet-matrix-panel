@@ -16,7 +16,7 @@ import sanitizeHtml from 'sanitize-html';
  * @param {GrafanaTheme} theme
  * @param {CSSReturnValue} styles
  */
-function createViz(elem, id, height, rowNames, colNames, matrix, options, theme, legend, styles) {
+function createViz(elem, id, height, rowNames, colNames, matrix, options, theme, legend, styles, colMetadata, colCategories, rowMetadata, rowCategories) {
   const srcText = sanitizeHtml(options.sourceText),
     targetText = sanitizeHtml(options.targetText),
     valText = sanitizeHtml(options.valueText),
@@ -38,7 +38,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     return;
   }
 
-  //find the length of the longest name. this will inform the margin and name truncation
+  // find the length of the longest name. this will inform the margin and name truncation
   var longestColName = colNames.reduce((a, b) => {
     return a.length > b.length ? a : b;
   });
@@ -46,24 +46,115 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     return a.length > b.length ? a : b;
   });
 
-  //txtLength is passed in. but names may be much smaller than this value.
-  //since this informs the margin we want to set it to whichever is longer
-  //this prevents a huge white space if txtlength is considerably bigger
-  //than the longest name. add 3 characters to account for ellipsis (...)
+  // txtLength is passed in. but names may be much smaller than this value.
+  // since this informs the margin we want to set it to whichever is longer
+  // this prevents a huge white space if txtlength is considerably bigger
+  // than the longest name. add 3 characters to account for ellipsis (...)
   const maxColTxtLength = longestColName.length < txtLength ? longestColName.length : txtLength + 3;
   const maxRowTxtLength = longestRowName.length < txtLength ? longestRowName.length : txtLength + 3;
 
-  //the user settable value cellsize controls the size of the svg.
-  // var size = names.length * cellSize;
+  // Calculate the margins needed
+  var colTxtOffset = maxColTxtLength * txtSize *                                                
+    (options.enableColGrouping && colCategories && colCategories.length > 0 ? 8 : 5) + 25;
+  var rowTxtOffset = maxRowTxtLength * txtSize *
+    (options.enableRowGrouping && rowCategories && rowCategories.length > 0 ? 8 : 5) + 25;
 
-  //calculate the margins needed
-  var colTxtOffset = maxColTxtLength * txtSize * 5 + 25;
-  var rowTxtOffset = maxRowTxtLength * txtSize * 5 + 25;
+  // Category header configuration
+  const colCategoryHeaderHeight = options.enableColGrouping && colCategories && colCategories.length > 0
+    ? (options.colCategoryHeaderHeight !== undefined ? options.colCategoryHeaderHeight : 40)
+    : 0;
+  const colCategoryGap = options.enableColGrouping && colCategories && colCategories.length > 0
+    ? (options.colCategoryGap !== undefined ? options.colCategoryGap : 4)
+    : 0;
+
+  // Calculate column positions with gaps between colCategories
+  let columnPositions = [];
+  let totalWidth = 0;
+
+  if (options.enableColGrouping && colCategories && colCategories.length > 0) {
+    // Calculate positions with category gaps
+    colCategories.forEach((category, catIndex) => {
+      const numCols = category.columns.length;
+      const groupWidth = numCols * cellSize;
+
+      category.columns.forEach((colName, indexInCat) => {
+        columnPositions.push({
+          name: colName,
+          x: totalWidth + (indexInCat * cellSize),
+          width: cellSize,
+          category: category.name,
+          categoryIndex: catIndex
+        });
+      });
+
+      totalWidth += groupWidth;
+      if (catIndex < colCategories.length - 1) {
+        totalWidth += colCategoryGap;
+      }
+    });
+  } else {
+    // No grouping: standard layout
+    colNames.forEach((colName, idx) => {
+      columnPositions.push({
+        name: colName,
+        x: idx * cellSize,
+        width: cellSize,
+        category: '',
+        categoryIndex: 0
+      });
+    });
+    totalWidth = colNames.length * cellSize;
+  }
+
+  // Row category configuration
+  const rowCategoryHeaderWidth = options.enableRowGrouping && rowCategories && rowCategories.length > 0
+    ? (options.rowCategoryHeaderWidth !== undefined ? options.rowCategoryHeaderWidth : 100)
+    : 0;
+  const rowCategoryGap = options.enableRowGrouping && rowCategories && rowCategories.length > 0
+    ? (options.rowCategoryGap !== undefined ? options.rowCategoryGap : 4)
+    : 0;
+
+  // Calculate row positions with gaps between colCategories
+  let rowPositions = [];
+  let totalHeight = 0;
+
+  if (options.enableRowGrouping && rowCategories && rowCategories.length > 0) {
+    rowCategories.forEach((category, catIndex) => {
+      const numRows = category.rows.length;
+      const groupHeight = numRows * cellSize;
+
+      category.rows.forEach((rowName, indexInCat) => {
+        rowPositions.push({
+          name: rowName,
+          y: totalHeight + (indexInCat * cellSize),
+          height: cellSize,
+          category: category.name,
+          categoryIndex: catIndex
+        });
+      });
+
+      totalHeight += groupHeight;
+      if (catIndex < rowCategories.length - 1) {
+        totalHeight += rowCategoryGap;
+      }
+    });
+  } else {
+    rowNames.forEach((rowName, idx) => {
+      rowPositions.push({
+        name: rowName,
+        y: idx * cellSize,
+        height: cellSize,
+        category: '',
+        categoryIndex: 0
+      });
+    });
+    totalHeight = rowNames.length * cellSize;
+  }
 
   // set the dimensions and margins of the graph
-  var margin = { top: colTxtOffset, right: 0, bottom: 0, left: rowTxtOffset },
-    width = colNames.length * cellSize,
-    height = rowNames.length * cellSize;
+  var margin = { top: colTxtOffset + colCategoryHeaderHeight, right: 0, bottom: 0, left: rowTxtOffset + rowCategoryHeaderWidth },
+    width = totalWidth,
+    height = totalHeight;
 
   if (elem !== undefined) {
     // clear out old contents
@@ -88,27 +179,30 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
   // Build X scales and axis:
-  var x = d3.scaleBand().range([0, width]).domain(colNames).padding(cellPadding);
-  svg.append('g').call(d3.axisTop(x)).select('.domain').remove();
+  // Index-based scale to support duplicate column names across categories
+  var x = function(colIndex) {
+    return columnPositions[colIndex] ? columnPositions[colIndex].x : 0;
+  };
+  x.bandwidth = function() {
+    return cellSize * (1 - cellPadding);
+  };
 
-  //rotate the labels on the X axis
-  // svg.selectAll('text').attr('style', 'text-anchor:end').attr('transform', 'translate(-11.5,-12)rotate(90)');
-  svg.selectAll('text').attr('style', 'text-anchor:start').attr('transform', 'translate(12,-12)rotate(-90)');
+  // Create axis manually with proper styling
+  var xAxisGroup = svg.append('g').attr('class', 'x-axis');
+  columnPositions.forEach(pos => {
+    const label = xAxisGroup.append('text')
+      .attr('transform', `translate(${pos.x + cellSize / 2},-12)rotate(-90)`)
+      .attr('text-anchor', 'start')
+      .attr('font-size', txtSize + 'em')
+      .style('font-family', theme.typography.fontFamily)
+      .attr('fill', theme.colors.text.primary)
+      .text(pos.name);
 
-  // Build Y scales and axis:
-  var y = d3.scaleBand().range([height, 0]).domain(rowNames.slice().reverse()).padding(cellPadding);
-  svg.append('g').call(d3.axisLeft(y)).select('.domain').remove();
-
-  //the scale bands have created the labels on the axis now we need to make sure the styles are set and add the hover events
-  svg
-    .selectAll('text')
-    .attr('font-size', txtSize + 'em')
-    .style('font-family', theme.typography.fontFamily)
-    .attr('fill', theme.colors.text.primary)
-    .call(truncateLabel, txtLength)
-    .on('mouseover', function (event, d) {
+    // Apply truncation and tooltips
+    label.call(truncateLabel, txtLength);
+    label.on('mouseover', function (event, d) {
       tooltip
-        .html(sanitizeHtml(d))
+        .html(sanitizeHtml(pos.name))
         .transition()
         .duration(150)
         .style('opacity', 1);
@@ -117,14 +211,150 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
       moveTooltip(event, elem, tooltip);
     })
     .on('mouseout', function () {
-      d3.select(this).attr('opacity', '1');
-
       tooltip
         .transition()
         .delay(100)
         .duration(150)
-        .style('opacity', 0)
+        .style('opacity', 0);
     });
+  });
+
+  // Build Y scales and axis:
+  // Index-based scale to support duplicate row names across categories
+  var y = function(rowIndex) {
+    return rowPositions[rowIndex] ? rowPositions[rowIndex].y : 0;
+  };
+  y.bandwidth = function() {
+    return cellSize * (1 - cellPadding);
+  };
+
+  // Create Y-axis manually with proper styling
+  var yAxisGroup = svg.append('g').attr('class', 'y-axis');
+  rowPositions.forEach(pos => {
+    const label = yAxisGroup.append('text')
+      .attr('x', -10)
+      .attr('y', pos.y + cellSize / 2)
+      .attr('text-anchor', 'end')
+      .attr('dominant-baseline', 'middle')
+      .attr('font-size', txtSize + 'em')
+      .style('font-family', theme.typography.fontFamily)
+      .attr('fill', theme.colors.text.primary)
+      .text(pos.name);
+
+    label.call(truncateLabel, txtLength);
+    label.on('mouseover', function (event, d) {
+      tooltip
+        .html(sanitizeHtml(pos.name))
+        .transition()
+        .duration(150)
+        .style('opacity', 1);
+    })
+    .on('mousemove', function (event) {
+      moveTooltip(event, elem, tooltip);
+    })
+    .on('mouseout', function () {
+      tooltip
+        .transition()
+        .delay(100)
+        .duration(150)
+        .style('opacity', 0);
+    });
+  });
+
+  // Render category headers
+  if (options.enableColGrouping && colCategories && colCategories.length > 0) {
+    const categoryHeaderGroup = svg.append('g')
+      .attr('class', `category-headers-${id}`)
+      .attr('transform', `translate(0, ${-colTxtOffset - colCategoryHeaderHeight})`);
+
+    colCategories.forEach((category, catIndex) => {
+      const startPos = columnPositions[category.startIndex];
+      const endPos = columnPositions[category.endIndex];
+
+      if (startPos && endPos) {
+        const groupX = startPos.x;
+        const groupWidth = (endPos.x + cellSize) - startPos.x;
+
+        // Category label rotated vertically; truncated to fit colCategoryHeaderHeight.
+        const colGroupLabelMaxChars = Math.max(3, Math.floor((colCategoryHeaderHeight - 12) / (txtSize * 1.2 * 8)));
+        categoryHeaderGroup.append('text')
+          .attr('transform', `translate(${groupX + cellSize / 2}, ${colCategoryHeaderHeight - 12})rotate(-90)`)
+          .attr('text-anchor', 'start')
+          .attr('font-size', (txtSize * 1.2) + 'em')
+          .attr('font-weight', 'bold')
+          .attr('fill', theme.colors.text.primary)
+          .style('font-family', theme.typography.fontFamily)
+          .text(category.name)
+          .call(truncateLabel, colGroupLabelMaxChars)
+          .on('mouseover', function (event, d) {
+            tooltip
+              .html(sanitizeHtml(category.name))
+              .transition()
+              .duration(150)
+              .style('opacity', 1);
+          })
+          .on('mousemove', function (event) {
+            moveTooltip(event, elem, tooltip);
+          })
+          .on('mouseout', function () {
+            tooltip
+              .transition()
+              .delay(100)
+              .duration(150)
+              .style('opacity', 0);
+          });
+      }
+    });
+  }
+
+  // Render row category headers
+  if (options.enableRowGrouping && rowCategories && rowCategories.length > 0) {
+    const rowCategoryHeaderGroup = svg.append('g')
+      .attr('class', `row-category-headers-${id}`)
+      .attr('transform', `translate(${-rowTxtOffset - rowCategoryHeaderWidth}, 0)`);
+
+    rowCategories.forEach((category, catIndex) => {
+      const startPos = rowPositions[category.startIndex];
+      const endPos = rowPositions[category.endIndex];
+
+      if (startPos && endPos) {
+        const groupY = startPos.y;
+        const groupHeight = (endPos.y + cellSize) - startPos.y;
+
+        // Group label: right-aligned so text grows leftward into rowCategoryHeaderWidth.
+        // Truncated when wider than the allocated area; tooltip shows full name.
+        const groupLabelMaxChars = Math.max(3, Math.floor((rowCategoryHeaderWidth - 10) / (txtSize * 1.2 * 8)));
+        rowCategoryHeaderGroup.append('text')
+          .attr('x', rowCategoryHeaderWidth - 5)
+          .attr('y', groupY + cellSize / 2)
+          .attr('text-anchor', 'end')
+          .attr('dominant-baseline', 'middle')
+          .attr('font-size', (txtSize * 1.2) + 'em')
+          .attr('font-weight', 'bold')
+          .attr('fill', theme.colors.text.primary)
+          .style('font-family', theme.typography.fontFamily)
+          .text(category.name)
+          .call(truncateLabel, groupLabelMaxChars)
+          .on('mouseover', function (event, d) {
+            tooltip
+              .html(sanitizeHtml(category.name))
+              .transition()
+              .duration(150)
+              .style('opacity', 1);
+          })
+          .on('mousemove', function (event) {
+            moveTooltip(event, elem, tooltip);
+          })
+          .on('mouseout', function () {
+            tooltip
+              .transition()
+              .delay(100)
+              .duration(150)
+              .style('opacity', 0);
+          });
+      }
+    });
+  }
 
   //build the matrix /////////////////////////////////////////
 
@@ -164,11 +394,11 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     .append('rect')
     .attr('id', `rect-${id}`)
     .attr('x', function (d, i, j) {
-      return x(colNames[i]);
+      return x(i);
     })
     .attr('y', function (d, i, j) {
       var outer_counter = outer.get(this);
-      return y(rowNames[outer_counter]);
+      return y(outer_counter);
     })
     .attr('width', x.bandwidth())
     .attr('height', y.bandwidth())
@@ -440,11 +670,11 @@ const getStyles = (theme: GrafanaTheme2) => {
  * @param {number} height Height of panel
  * @return {*} A d3 callback
  */
-function matrix(rowNames, colNames, matrix, id, height, options, legend) {
+function matrix(rowNames, colNames, matrix, id, height, options, legend, colMetadata, colCategories, rowMetadata, rowCategories) {
   const theme = useTheme2();
   const styles = useStyles2(getStyles);
   const ref = useD3((svg) => {
-    createViz(svg, id, height, rowNames, colNames, matrix, options, theme, legend, styles);
+    createViz(svg, id, height, rowNames, colNames, matrix, options, theme, legend, styles, colMetadata, colCategories, rowMetadata, rowCategories);
   });
   return ref;
 }
