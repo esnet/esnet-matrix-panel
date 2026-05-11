@@ -1,0 +1,200 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-testdata-datasource",
+        "uid": "trlxrdZVk"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 15,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "addUrl": false,
+        "aggregationMethod": "sum",
+        "cellPadding": 10,
+        "cellSize": 18,
+        "colCategoryGap": 4,
+        "colCategoryHeaderHeight": 100,
+        "defaultColor": "#E6E6E6",
+        "enableColGrouping": false,
+        "enableRowGrouping": false,
+        "inputList": false,
+        "legendType": "range",
+        "nullColor": "#E6E6E6",
+        "rowCategoryGap": 4,
+        "rowCategoryHeaderWidth": 100,
+        "seriesCountSize": "sm",
+        "showLegend": true,
+        "showSeriesCount": false,
+        "sourceField": "Source",
+        "sourceText": "From",
+        "targetField": "Destination",
+        "targetText": "To",
+        "text": "Default value of text input option",
+        "txtLength": 50,
+        "txtSize": 12,
+        "valueText": "Value",
+        "values": 1
+      },
+      "pluginVersion": "2.0.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-testdata-datasource",
+            "uid": "db84e60d-b92a-4089-82cb-34842fb1754b"
+          },
+          "rawFrameContent": "[\n  {\n    \"columns\": [\n      {\n        \"text\": \"Time\",\n        \"type\": \"time\"\n      },\n      {\n        \"text\": \"Source\",\n        \"type\": \"string\"\n      },\n      {\n        \"text\": \"Destination\",\n        \"type\": \"string\"\n      },\n      {\n        \"text\": \"Value\",\n        \"type\": \"number\"\n      }\n    ],\n    \"rows\": [\n      [1609459200000, \"host-01.example.org\", \"host-02.example.org\", 10],\n      [1609459200000, \"host-01.example.org\", \"host-03.example.org\", 15],\n      [1609459200000, \"host-01.example.org\", \"host-04.example.org\", 20],\n      [1609459200000, \"host-01.example.org\", \"host-05.example.org\", 25],\n      [1609459200000, \"host-02.example.org\", \"host-01.example.org\", 12],\n      [1609459200000, \"host-02.example.org\", \"host-03.example.org\", 13],\n      [1609459200000, \"host-02.example.org\", \"host-04.example.org\", 17],\n      [1609459200000, \"host-02.example.org\", \"host-05.example.org\", 30],\n      [1609459200000, \"host-03.example.org\", \"host-01.example.org\", 1],\n      [1609459200000, \"host-03.example.org\", \"host-02.example.org\", 13],\n      [1609459200000, \"host-03.example.org\", \"host-04.example.org\", 10],\n      [1609459200000, \"host-03.example.org\", \"host-05.example.org\", 3],\n      [1609459200000, \"host-04.example.org\", \"host-01.example.org\", 1],\n      [1609459200000, \"host-04.example.org\", \"host-02.example.org\", 13],\n      [1609459200000, \"host-04.example.org\", \"host-03.example.org\", 10],\n      [1609459200000, \"host-04.example.org\", \"host-05.example.org\", 18],\n      [1609459200000, \"host-05.example.org\", \"host-01.example.org\", 4],\n      [1609459200000, \"host-05.example.org\", \"host-02.example.org\", 40],\n      [1609459200000, \"host-05.example.org\", \"host-03.example.org\", 14],\n      [1609459200000, \"host-05.example.org\", \"host-04.example.org\", 3]\n    ]\n  }\n]",
+          "refId": "A",
+          "scenarioId": "raw_frame"
+        }
+      ],
+      "title": "Simple latency matrix",
+      "type": "esnet-matrix-panel"
+    },
+    {
+      "datasource": {
+        "type": "grafana-testdata-datasource",
+        "uid": "trlxrdZVk"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 15,
+        "w": 8,
+        "x": 6,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "addUrl": false,
+        "aggregationMethod": "sum",
+        "cellPadding": 10,
+        "cellSize": 18,
+        "colCategoryField": "DestinationGroup",
+        "colCategoryGap": 4,
+        "colCategoryHeaderHeight": 100,
+        "defaultColor": "#E6E6E6",
+        "enableColGrouping": true,
+        "enableRowGrouping": true,
+        "inputList": false,
+        "legendType": "range",
+        "nullColor": "#E6E6E6",
+        "rowCategoryField": "SourceGroup",
+        "rowCategoryGap": 4,
+        "rowCategoryHeaderWidth": 100,
+        "seriesCountSize": "sm",
+        "showLegend": true,
+        "showSeriesCount": false,
+        "sortType": "natural-asc",
+        "sourceField": "Source",
+        "sourceText": "From",
+        "targetField": "Destination",
+        "targetText": "To",
+        "text": "Default value of text input option",
+        "txtLength": 50,
+        "txtSize": 12,
+        "valueText": "Value",
+        "values": 1
+      },
+      "pluginVersion": "2.0.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-testdata-datasource",
+            "uid": "db84e60d-b92a-4089-82cb-34842fb1754b"
+          },
+          "rawFrameContent": "[\n  {\n    \"columns\": [\n      {\n        \"text\": \"Time\",\n        \"type\": \"time\"\n      },\n      {\n        \"text\": \"SourceGroup\",\n        \"type\": \"string\"\n      },\n      {\n        \"text\": \"Source\",\n        \"type\": \"string\"\n      },\n      {\n        \"text\": \"DestinationGroup\",\n        \"type\": \"string\"\n      },\n      {\n        \"text\": \"Destination\",\n        \"type\": \"string\"\n      },\n      {\n        \"text\": \"Value\",\n        \"type\": \"number\"\n      }\n    ],\n    \"rows\": [\n      [1609459200000, \"Group A\", \"host-01.example.org\", \"\", \"host-02.example.org\", 10],\n      [1609459200000, \"Group A\", \"host-01.example.org\", \"Group B\", \"host-03.example.org\", 15],\n      [1609459200000, \"Group A\", \"host-01.example.org\", \"Group B\", \"host-04.example.org\", 20],\n      [1609459200000, \"Group A\", \"host-01.example.org\", \"Group B\", \"host-05.example.org\", 25],\n      [1609459200000, \"\", \"host-02.example.org\", \"Group A\", \"host-01.example.org\", 12],\n      [1609459200000, \"\", \"host-02.example.org\", \"Group B\", \"host-03.example.org\", 13],\n      [1609459200000, \"\", \"host-02.example.org\", \"Group B\", \"host-04.example.org\", 17],\n      [1609459200000, \"\", \"host-02.example.org\", \"Group B\", \"host-05.example.org\", 30],\n      [1609459200000, \"Group B\", \"host-03.example.org\", \"Group A\", \"host-01.example.org\", 1],\n      [1609459200000, \"Group B\", \"host-03.example.org\", \"\", \"host-02.example.org\", 13],\n      [1609459200000, \"Group B\", \"host-03.example.org\", \"Group B\", \"host-04.example.org\", 10],\n      [1609459200000, \"Group B\", \"host-03.example.org\", \"Group B\", \"host-05.example.org\", 3],\n      [1609459200000, \"Group B\", \"host-04.example.org\", \"Group A\", \"host-01.example.org\", 1],\n      [1609459200000, \"Group B\", \"host-04.example.org\", \"\", \"host-02.example.org\", 13],\n      [1609459200000, \"Group B\", \"host-04.example.org\", \"Group B\", \"host-03.example.org\", 10],\n      [1609459200000, \"Group B\", \"host-04.example.org\", \"Group B\", \"host-05.example.org\", 18],\n      [1609459200000, \"Group B\", \"host-05.example.org\", \"Group A\", \"host-01.example.org\", 4],\n      [1609459200000, \"Group B\", \"host-05.example.org\", \"\", \"host-02.example.org\", 40],\n      [1609459200000, \"Group B\", \"host-05.example.org\", \"Group B\", \"host-03.example.org\", 14],\n      [1609459200000, \"Group B\", \"host-05.example.org\", \"Group B\", \"host-04.example.org\", 3]\n    ]\n  }\n]",
+          "refId": "A",
+          "scenarioId": "raw_frame"
+        }
+      ],
+      "title": "Grouped matrix",
+      "type": "esnet-matrix-panel"
+    }
+  ],
+  "preload": false,
+  "refresh": "",
+  "schemaVersion": 42,
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Provisioned matrix dashboard",
+  "uid": "a538aeff-5a8a-42a5-901c-938d896fdd6f",
+  "version": 1
+}
