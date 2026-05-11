@@ -188,7 +188,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   };
 
   // Create axis manually with proper styling
-  var xAxisGroup = svg.append('g').attr('class', 'x-axis');
+  var xAxisGroup = svg.append('g').attr('class', 'x-axis').attr('font-size', '10');
   columnPositions.forEach(pos => {
     const label = xAxisGroup.append('text')
       .attr('transform', `translate(${pos.x + cellSize / 2},-12)rotate(-90)`)
@@ -229,7 +229,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   };
 
   // Create Y-axis manually with proper styling
-  var yAxisGroup = svg.append('g').attr('class', 'y-axis');
+  var yAxisGroup = svg.append('g').attr('class', 'y-axis').attr('font-size', '10');
   rowPositions.forEach(pos => {
     const label = yAxisGroup.append('text')
       .attr('x', -10)
