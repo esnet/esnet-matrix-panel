@@ -54,10 +54,8 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   const maxRowTxtLength = longestRowName.length < txtLength ? longestRowName.length : txtLength + 3;
 
   // Calculate the margins needed
-  var colTxtOffset = maxColTxtLength * txtSize *                                                
-    (options.enableColGrouping && colCategories && colCategories.length > 0 ? 8 : 5) + 25;
-  var rowTxtOffset = maxRowTxtLength * txtSize *
-    (options.enableRowGrouping && rowCategories && rowCategories.length > 0 ? 8 : 5) + 25;
+  var colTxtOffset = maxColTxtLength * txtSize * 5 + 25;
+  var rowTxtOffset = maxRowTxtLength * txtSize * 5 + 25;
 
   // Category header configuration
   const colCategoryHeaderHeight = options.enableColGrouping && colCategories && colCategories.length > 0
@@ -265,6 +263,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   if (options.enableColGrouping && colCategories && colCategories.length > 0) {
     const categoryHeaderGroup = svg.append('g')
       .attr('class', `category-headers-${id}`)
+      .attr('font-size', '10')
       .attr('transform', `translate(0, ${-colTxtOffset - colCategoryHeaderHeight})`);
 
     colCategories.forEach((category, catIndex) => {
@@ -311,6 +310,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   if (options.enableRowGrouping && rowCategories && rowCategories.length > 0) {
     const rowCategoryHeaderGroup = svg.append('g')
       .attr('class', `row-category-headers-${id}`)
+      .attr('font-size', '10')
       .attr('transform', `translate(${-rowTxtOffset - rowCategoryHeaderWidth}, 0)`);
 
     rowCategories.forEach((category, catIndex) => {
