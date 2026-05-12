@@ -1,4 +1,4 @@
-import { DataFrameView } from '@grafana/data';
+import { DataFrameView, Field, FieldType, getFieldDisplayName } from '@grafana/data';
 
 /**
  * this function creates an adjacency matrix to be consumed by the chord
@@ -28,25 +28,56 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     return { rows: null, columns: null, colMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: null, legend: null };
   }
   // set fields
-  let sourceKey = options.sourceField;
-  let targetKey = options.targetField;
-  let colCategoryKey = options.colCategoryField;
-  let rowCategoryKey = options.rowCategoryField;
-  if (!sourceKey) {
-    sourceKey = 0;
-  }
-  if (!targetKey) {
-    targetKey = 1;
-  }
-
+  const sourceField = series.fields.find((f: Field) =>
+    options.sourceField !== undefined && (
+      options.sourceField === f.name
+      || options.sourceField === f.config?.displayNameFromDS
+      || options.sourceField === getFieldDisplayName(f)
+    )
+  ) ?? series.fields.find((f: Field) => f.type === FieldType.string);
+  const targetField = series.fields.find((f: Field) =>
+    options.targetField !== undefined && (
+      options.targetField === f.name
+      || options.targetField === f.config?.displayNameFromDS
+      || options.targetField === getFieldDisplayName(f)
+    )
+  ) ?? series.fields.find((f: Field) => f.type === FieldType.string && f.name !== sourceField?.name);
+  const colCategoryField = series.fields.find((f: Field) =>
+    options.colCategoryField !== undefined && (
+      options.colCategoryField === f.name
+      || options.colCategoryField === f.config?.displayNameFromDS
+      || options.colCategoryField === getFieldDisplayName(f)
+    )
+  );
+  const rowCategoryField = series.fields.find((f: Field) =>
+    options.rowCategoryField !== undefined && (
+      options.rowCategoryField === f.name
+      || options.rowCategoryField === f.config?.displayNameFromDS
+      || options.rowCategoryField === getFieldDisplayName(f)
+    )
+  );
   // assign valueField to the specified field or use the first number field by default
-  const val = options.valueField;
-  const valueField = val
-    ? data.series.map((series: { fields: any[] }) => series.fields.find((field: { name: any }) => field.name === val))
-    : data.series.map((series: { fields: any[] }) =>
-        series.fields.find((field: { type: string }) => field.type === 'number')
-      );
-  const valKey = valueField[0].name;
+  const valueField: any = series.fields.find((f: Field) =>
+    options.valueField !== undefined && (
+      options.valueField === f.name
+      || options.valueField === f.config?.displayNameFromDS
+      || options.valueField === getFieldDisplayName(f)
+    )
+  ) ?? series.fields.find((f: Field) => f.type === FieldType.number);
+  const sourceKey = sourceField?.name;
+  const targetKey = targetField?.name;
+  const colCategoryKey = colCategoryField?.name;
+  const rowCategoryKey = rowCategoryField?.name;
+  const valKey = valueField?.name;
+
+  if (
+    sourceKey === undefined || targetKey === undefined
+    || valueField === undefined || valKey === undefined
+  ) {
+    // no data, bail
+    console.error('no data');
+    return { rows: null, columns: null, colMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: null, legend: null };
+  }
 
   // function that maps value to color specified by Standard Options panel.
   // if value is null or was not returned by query, use different value
@@ -58,7 +89,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     } else if (v === -1) {
       return defaultColor;
     } else {
-      return valueField[0].display(v).color;
+      return valueField.display(v).color;
     }
   }
 
@@ -95,10 +126,14 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
 
   // IF static list toggle is set, use input list
   if (options.inputList) {
-    const staticRows = options.staticRows.split(',');
-    const staticCols = options.staticColumns.split(',');
-    compositeRowKeys = Array.from(new Set(staticRows));
-    compositeColKeys = Array.from(new Set(staticCols));
+    if (options.staticRows !== undefined) {
+      const staticRows = options.staticRows.split(',');
+      compositeRowKeys = Array.from(new Set(staticRows));
+    }
+    if (options.staticColumns !== undefined) {
+      const staticCols = options.staticColumns.split(',');
+      compositeColKeys = Array.from(new Set(staticCols));
+    }
   } else {
     // Build unique composite keys from data
     const colKeySet = new Set<string>();
@@ -119,6 +154,12 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
 
     compositeColKeys = Array.from(colKeySet).sort();
     compositeRowKeys = Array.from(rowKeySet).sort();
+  }
+
+  if (compositeColKeys.length === 0 || compositeRowKeys.length === 0) {
+    // no data, bail
+    console.error('no data');
+    return { rows: null, columns: null, colMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: null, legend: null };
   }
 
   // Extract display names from composite keys
@@ -291,7 +332,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
       col: colNames[c],
       val: v,
       color: colorMap(v),
-      display: valueField[0].display(v),
+      display: valueField.display(v),
     };
   });
 
@@ -319,9 +360,9 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     tempValues.forEach((val) => {
       // find display values, unit & color for each
       // store in array
-      let text = valueField[0].display(val).text;
-      if (valueField[0].display(val).suffix) {
-        text = text + ` ${valueField[0].display(val).suffix}`;
+      let text = valueField.display(val).text;
+      if (valueField.display(val).suffix) {
+        text = text + ` ${valueField.display(val).suffix}`;
       }
         legendData.push({
           label: text,

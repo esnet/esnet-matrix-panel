@@ -1,4 +1,4 @@
-import { FieldOverrideContext, getFieldDisplayName, PanelPlugin, FieldConfigProperty } from '@grafana/data';
+import { Field, FieldConfigProperty, FieldType, PanelPlugin } from '@grafana/data';
 // import { standardOptionsCompat } from 'grafana-plugin-support';
 import { MatrixOptions } from './types';
 import { EsnetMatrix } from './EsnetMatrix';
@@ -67,100 +67,41 @@ plugin.setPanelOptions((builder) => {
     category: RowOptions,
     showIf: staticBool(true),
   });
-  builder.addSelect({
+  builder.addFieldNamePicker({
     path: 'sourceField',
     name: 'Rows Field',
     description: 'Select the field that should be used for the rows',
     category: RowOptions,
     settings: {
-      allowCustomValue: false,
-      options: [],
-      getOptions: async (context: FieldOverrideContext) => {
-        const options = [];
-        if (context && context.data) {
-          for (const frame of context.data) {
-            for (const field of frame.fields) {
-              const name = getFieldDisplayName(field, frame, context.data);
-              const value = name;
-              options.push({ value, label: name });
-            }
-          }
-        }
-        return Promise.resolve(options);
-      },
+      filter: (field: Field) => field.type === FieldType.string,
     },
-    // defaultValue: options[0],
   });
-  builder.addSelect({
+  builder.addFieldNamePicker({
     path: 'targetField',
     name: 'Columns Field',
     description: 'Select the field to use for the columns',
     category: RowOptions,
     settings: {
-      allowCustomValue: false,
-      options: [],
-      getOptions: async (context: FieldOverrideContext) => {
-        const options = [];
-        if (context && context.data) {
-          for (const frame of context.data) {
-            for (const field of frame.fields) {
-              const name = getFieldDisplayName(field, frame, context.data);
-              const value = name;
-              options.push({ value, label: name });
-            }
-          }
-        }
-        return Promise.resolve(options);
-      },
+      filter: (field: Field) => field.type === FieldType.string,
     },
   });
-  builder.addSelect({
+  builder.addFieldNamePicker({
     path: 'valueField',
     name: 'Value Field',
     description: 'Select the numeric field used to color the matrix cells.',
     category: RowOptions,
     settings: {
-      allowCustomValue: false,
-      options: [],
-      getOptions: async (context: FieldOverrideContext) => {
-        const options = [];
-        if (context && context.data) {
-          for (const frame of context.data) {
-            for (const field of frame.fields) {
-              if (field.type === 'number') {
-                const name = getFieldDisplayName(field, frame, context.data);
-                const value = name;
-                options.push({ value, label: name });
-              }
-            }
-          }
-        }
-        return Promise.resolve(options);
-      },
+      filter: (field: Field) => field.type === FieldType.number,
     },
   });
-  builder.addSelect({
+  builder.addFieldNamePicker({
     path: 'colCategoryField',
     name: 'Column Category Field',
     description: 'Select the field to use for grouping columns into categories',
     category: RowOptions,
     showIf: colGroupingBool(true),
     settings: {
-      allowCustomValue: false,
-      options: [],
-      getOptions: async (context: FieldOverrideContext) => {
-        const options = [{ value: '', label: 'None' }];
-        if (context && context.data) {
-          for (const frame of context.data) {
-            for (const field of frame.fields) {
-              const name = getFieldDisplayName(field, frame, context.data);
-              const value = name;
-              options.push({ value, label: name });
-            }
-          }
-        }
-        return Promise.resolve(options);
-      },
+      filter: (field: Field) => field.type === FieldType.string,
     },
   });
   builder.addBooleanSwitch({
@@ -207,28 +148,14 @@ plugin.setPanelOptions((builder) => {
   });
 
   ////////------------ Row Grouping Options ----------------/////////////
-  builder.addSelect({
+  builder.addFieldNamePicker({
     path: 'rowCategoryField',
     name: 'Row Category Field',
     description: 'Select the field to use for grouping rows into categories',
     category: RowOptions,
     showIf: rowGroupingBool(true),
     settings: {
-      allowCustomValue: false,
-      options: [],
-      getOptions: async (context: FieldOverrideContext) => {
-        const options = [{ value: '', label: 'None' }];
-        if (context && context.data) {
-          for (const frame of context.data) {
-            for (const field of frame.fields) {
-              const name = getFieldDisplayName(field, frame, context.data);
-              const value = name;
-              options.push({ value, label: name });
-            }
-          }
-        }
-        return Promise.resolve(options);
-      },
+      filter: (field: Field) => field.type === FieldType.string,
     },
   });
   builder.addNumberInput({
