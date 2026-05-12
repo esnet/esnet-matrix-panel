@@ -49,20 +49,20 @@ plugin.setPanelOptions((builder) => {
   /////////--------- Row and Column options ---------////////////////
   builder.addBooleanSwitch({
     path: 'inputList',
-    name: 'Use Static Row/Column Lists',
+    name: 'Use Static Row/Column Headings',
     category: RowOptions,
     defaultValue: false,
   });
   builder.addTextInput({
     path: 'staticRows',
-    name: 'Row Array',
+    name: 'Row Headings',
     description: 'Terms to use as matrix rows (comma separated)',
     category: RowOptions,
     showIf: staticBool(true),
   });
   builder.addTextInput({
     path: 'staticColumns',
-    name: 'Column Array',
+    name: 'Column Headings',
     description: 'Terms to use as matrix columns (comma separated)',
     category: RowOptions,
     showIf: staticBool(true),
@@ -188,24 +188,6 @@ plugin.setPanelOptions((builder) => {
   });
 
   ////////------------ General Matrix Options ----------------/////////////
-  builder.addSelect({
-    path: 'aggregationMethod',
-    name: 'Aggregation Method',
-    description: 'How to aggregate values when multiple data points map to the same cell',
-    category: OptionsCategory,
-    showIf: (config: MatrixOptions) => config.enableColGrouping || config.enableRowGrouping,
-    defaultValue: 'sum',
-    settings: {
-      allowCustomValue: false,
-      options: [
-        { value: 'sum', label: 'Sum' },
-        { value: 'avg', label: 'Average' },
-        { value: 'min', label: 'Min' },
-        { value: 'max', label: 'Max' },
-        { value: 'last', label: 'Last' },
-      ],
-    },
-  });
   builder.addBooleanSwitch({
     path: 'showLegend',
     name: 'Show Legend',

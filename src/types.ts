@@ -28,8 +28,20 @@ export interface MatrixOptions {
   inputList: boolean;
   staticRows: string[];
   staticColumns: string[];
-  aggregationMethod: string;
   showLegend: boolean;
   legendType: string;
   thresholds: any[];
 }
+
+export type Category = {
+  name: any;
+  items: any[];
+};
+
+export type Heading = {
+  name: string;
+  x: number;
+  width: number;
+  category: string;
+  categoryIndex: number;
+};
