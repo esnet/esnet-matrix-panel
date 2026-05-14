@@ -54,10 +54,8 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   const maxRowTxtLength = longestRowName.length < txtLength ? longestRowName.length : txtLength + 3;
 
   // Calculate the margins needed
-  var colTxtOffset = maxColTxtLength * txtSize *                                                
-    (options.enableColGrouping && colCategories && colCategories.length > 0 ? 8 : 5) + 25;
-  var rowTxtOffset = maxRowTxtLength * txtSize *
-    (options.enableRowGrouping && rowCategories && rowCategories.length > 0 ? 8 : 5) + 25;
+  var colTxtOffset = maxColTxtLength * txtSize * 5 + 25;
+  var rowTxtOffset = maxRowTxtLength * txtSize * 5 + 25;
 
   // Category header configuration
   const colCategoryHeaderHeight = options.enableColGrouping && colCategories && colCategories.length > 0
@@ -188,7 +186,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   };
 
   // Create axis manually with proper styling
-  var xAxisGroup = svg.append('g').attr('class', 'x-axis');
+  var xAxisGroup = svg.append('g').attr('class', 'x-axis').attr('font-size', '10');
   columnPositions.forEach(pos => {
     const label = xAxisGroup.append('text')
       .attr('transform', `translate(${pos.x + cellSize / 2},-12)rotate(-90)`)
@@ -229,7 +227,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   };
 
   // Create Y-axis manually with proper styling
-  var yAxisGroup = svg.append('g').attr('class', 'y-axis');
+  var yAxisGroup = svg.append('g').attr('class', 'y-axis').attr('font-size', '10');
   rowPositions.forEach(pos => {
     const label = yAxisGroup.append('text')
       .attr('x', -10)
@@ -265,6 +263,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   if (options.enableColGrouping && colCategories && colCategories.length > 0) {
     const categoryHeaderGroup = svg.append('g')
       .attr('class', `category-headers-${id}`)
+      .attr('font-size', '10')
       .attr('transform', `translate(0, ${-colTxtOffset - colCategoryHeaderHeight})`);
 
     colCategories.forEach((category, catIndex) => {
@@ -311,6 +310,7 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
   if (options.enableRowGrouping && rowCategories && rowCategories.length > 0) {
     const rowCategoryHeaderGroup = svg.append('g')
       .attr('class', `row-category-headers-${id}`)
+      .attr('font-size', '10')
       .attr('transform', `translate(${-rowTxtOffset - rowCategoryHeaderWidth}, 0)`);
 
     rowCategories.forEach((category, catIndex) => {
