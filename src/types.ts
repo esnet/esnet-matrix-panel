@@ -1,4 +1,5 @@
 export interface MatrixOptions {
+  sortType: string;
   sourceField: string;
   targetField: string;
   valueField: string;

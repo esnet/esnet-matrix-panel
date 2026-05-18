@@ -45,8 +45,31 @@ plugin.useFieldConfig({
   ]
 });
 
+plugin.setMigrationHandler((panel) => {
+  if (panel.options.sortType === undefined) {
+    panel.options.sortType = 'natural-asc'
+  }
+
+  return panel.options;
+});
+
 plugin.setPanelOptions((builder) => {
   /////////--------- Row and Column options ---------////////////////
+  builder.addSelect({
+    path: 'sortType',
+    name: 'Sort Type',
+    description: 'Sorting to apply to row/column headings',
+    category: RowOptions,
+    defaultValue: 'natural-asc',
+    settings: {
+      allowCustomValue: false,
+      options: [
+        { value: 'none', label: 'None' },
+        { value: 'natural-asc', label: 'Natural ascending' },
+        { value: 'natural-desc', label: 'Natural descending' },
+      ],
+    },
+  });
   builder.addBooleanSwitch({
     path: 'inputList',
     name: 'Use Static Row/Column Headings',

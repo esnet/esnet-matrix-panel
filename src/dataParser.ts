@@ -172,8 +172,46 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
 
   const rowNames: any[] = Array.from(rowNamesSet);
   const colNames: any[] = Array.from(colNamesSet);
-  const rowCategories: Category[] = Array.from(rowCategoriesMap.values());
-  const colCategories: Category[] = Array.from(colCategoriesMap.values());
+  const rowCategories: Category[] = [];
+  const colCategories: Category[] = [];
+
+  switch(options.sortType) {
+  case "natural-asc":
+  case "natural-desc":
+    const naturalSort = (a: any, b: any) => {
+      return a.toString().localeCompare(b.toString(), undefined, { numeric: true });
+    };
+
+    let sort = naturalSort;
+    if (options.sortType.endsWith("-desc")) {
+      sort = (a, b) => naturalSort(b, a);
+    }
+
+    // sort row and column headings
+    rowNames.sort(sort);
+    colNames.sort(sort);
+
+    // sort row and column categories and items in each category
+    Array.from(rowCategoriesMap.keys()).sort(sort).forEach((name) => {
+      const category = rowCategoriesMap.get(name);
+      if (category !== undefined) {
+        category.items.sort(sort);
+        rowCategories.push(category);
+      }
+    });
+    Array.from(colCategoriesMap.keys()).sort(sort).forEach((name) => {
+      const category = colCategoriesMap.get(name);
+      if (category !== undefined) {
+        category.items.sort(sort);
+        colCategories.push(category);
+      }
+    });
+    break;
+  case "none":
+    rowCategories.push(...rowCategoriesMap.values());
+    colCategories.push(...colCategoriesMap.values());
+    break;
+  }
 
   // create data matrix
   let dataMatrix: any[][] = [];
