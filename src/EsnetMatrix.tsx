@@ -34,7 +34,6 @@ export const EsnetMatrix: React.FC<Props> = ({ options, data, width, height, id 
     parsedData.colNames,
     parsedData.data,
     id,
-    height,
     options,
     parsedData.legend,
     parsedData.colCategories,
