@@ -450,7 +450,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
     })
     // the tooltip for boxes
     .on('mouseover', function (event, d) {
-      if (d != -1) {
+      if (d !== -1) {
         //turn down the opacity slightly to show the hover
         d3.select(this)
           // .attr('opacity', '.75')
@@ -559,7 +559,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
         })
         .attr('y', 50)
         .text(function (d, i) {
-          if ((i == 0) | (i == legend.length - 1)) {
+          if ((i === 0) | (i === legend.length - 1)) {
             return d.label;
           } else {
             return;
