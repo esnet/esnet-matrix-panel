@@ -213,7 +213,7 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
   }
 
   // create data matrix
-  let dataMatrix: DataMatrixCell[][] = [];
+  const dataMatrix: DataMatrixCell[][] = [];
   for (let i = 0; i < rowNames.length; i++) {
     dataMatrix.push(new Array(colNames.length).fill(-1));
   }
@@ -236,7 +236,7 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
   });
 
   // parse data for legend
-  let legendData: LegendData[] = [];
+  const legendData: LegendData[] = [];
   if (options.showLegend) {
     let tempValues: any[] = [];
     if (options.legendType === 'range') { 

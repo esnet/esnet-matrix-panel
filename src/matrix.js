@@ -42,10 +42,10 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
   }
 
   // find the length of the longest name. this will inform the margin and name truncation
-  var longestColName = colNames.reduce((a, b) => {
+  const longestColName = colNames.reduce((a, b) => {
     return a.length > b.length ? a : b;
   });
-  var longestRowName = rowNames.reduce((a, b) => {
+  const longestRowName = rowNames.reduce((a, b) => {
     return a.length > b.length ? a : b;
   });
 
@@ -57,8 +57,8 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
   const maxRowTxtLength = longestRowName.length < txtLength ? longestRowName.length : txtLength + 3;
 
   // Calculate the margins needed
-  var colTxtOffset = maxColTxtLength * txtSize * 5 + 25;
-  var rowTxtOffset = maxRowTxtLength * txtSize * 5 + 25;
+  const colTxtOffset = maxColTxtLength * txtSize * 5 + 25;
+  const rowTxtOffset = maxRowTxtLength * txtSize * 5 + 25;
 
   // Category header configuration
   const colCategoryHeaderHeight = options.enableColGrouping && colCategories && colCategories.length > 0
@@ -153,7 +153,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
   }
 
   // set the dimensions and margins of the graph
-  var margin = { top: colTxtOffset + colCategoryHeaderHeight, right: 0, bottom: 0, left: rowTxtOffset + rowCategoryHeaderWidth },
+  const margin = { top: colTxtOffset + colCategoryHeaderHeight, right: 0, bottom: 0, left: rowTxtOffset + rowCategoryHeaderWidth },
     width = totalWidth,
     height = totalHeight;
 
@@ -169,8 +169,8 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
     .style('opacity', 0);
 
   // append the svg object to the body of the page
-  var svgClass = `svg-${id}`;
-  var svg = d3
+  const svgClass = `svg-${id}`;
+  const svgMatrix = d3
     .select(elem)
     .append('svg')
     .attr('id', svgClass)
@@ -181,7 +181,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
 
   // Build X scales and axis:
   // Index-based scale to support duplicate column names across categories
-  var x = function(colIndex) {
+  const x = function(colIndex) {
     return columnPositions[colIndex] ? columnPositions[colIndex].x : 0;
   };
   x.bandwidth = function() {
@@ -189,7 +189,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
   };
 
   // Create axis manually with proper styling
-  var xAxisGroup = svg.append('g').attr('class', 'x-axis').attr('font-size', '10');
+  const xAxisGroup = svgMatrix.append('g').attr('class', 'x-axis').attr('font-size', '10');
   columnPositions.forEach(pos => {
     const label = xAxisGroup.append('text')
       .attr('transform', `translate(${pos.x + cellSize / 2},-12)rotate(-90)`)
@@ -222,7 +222,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
 
   // Build Y scales and axis:
   // Index-based scale to support duplicate row names across categories
-  var y = function(rowIndex) {
+  const y = function(rowIndex) {
     return rowPositions[rowIndex] ? rowPositions[rowIndex].y : 0;
   };
   y.bandwidth = function() {
@@ -230,7 +230,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
   };
 
   // Create Y-axis manually with proper styling
-  var yAxisGroup = svg.append('g').attr('class', 'y-axis').attr('font-size', '10');
+  const yAxisGroup = svgMatrix.append('g').attr('class', 'y-axis').attr('font-size', '10');
   rowPositions.forEach(pos => {
     const label = yAxisGroup.append('text')
       .attr('x', -10)
@@ -264,7 +264,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
 
   // Render category headers
   if (options.enableColGrouping && colCategories && colCategories.length > 0) {
-    const categoryHeaderGroup = svg.append('g')
+    const categoryHeaderGroup = svgMatrix.append('g')
       .attr('class', `category-headers-${id}`)
       .attr('font-size', '10')
       .attr('transform', `translate(0, ${-colTxtOffset - colCategoryHeaderHeight})`);
@@ -326,7 +326,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
 
   // Render row category headers
   if (options.enableRowGrouping && rowCategories && rowCategories.length > 0) {
-    const rowCategoryHeaderGroup = svg.append('g')
+    const rowCategoryHeaderGroup = svgMatrix.append('g')
       .attr('class', `row-category-headers-${id}`)
       .attr('font-size', '10')
       .attr('transform', `translate(${-rowTxtOffset - rowCategoryHeaderWidth}, 0)`);
@@ -392,19 +392,19 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
   //build the matrix /////////////////////////////////////////
 
   //use d3's local stuff to record where we are in the outer loop
-  var outer = d3.local();
+  const outer = d3.local();
 
-  var svg_g = d3.select('#' + svgClass).selectAll('svg > g');
+  const svg_g = d3.select('#' + svgClass).selectAll('svg > g');
 
   //create the area where we will put all the boxes
   const rectClass = `rectArea-${id}`;
-  var rectArea = svg_g.append('g').attr('class', rectClass);
+  const rectArea = svg_g.append('g').attr('class', rectClass);
 
   //this selection breaks the data down to the row level. This is
   //needed because the underlying datastructure is a 2d array
-  var rows = rectArea.selectAll('g').data(matrix).enter().append('g').attr('class', 'row');
+  const rows = rectArea.selectAll('g').data(matrix).enter().append('g').attr('class', 'row');
 
-  var rects = rows
+  const rects = rows
     .selectAll('rect')
     .data(function (d, i) {
       outer.set(this, i);
@@ -414,7 +414,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
     .append('a')
     .attr('xlink:href', (d) => {
       if (linkURL) {
-        var thisURL = linkURL;
+        let thisURL = linkURL;
         if (urlVar1) {
           thisURL = thisURL.concat(`&var-${urlVar1}=${d.row}`);
         }
@@ -430,15 +430,15 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
       return x(i);
     })
     .attr('y', function (d, i, j) {
-      var outer_counter = outer.get(this);
+      const outer_counter = outer.get(this);
       return y(outer_counter);
     })
     .attr('width', x.bandwidth())
     .attr('height', y.bandwidth())
     //this places a 'data' attribute into the HTML to make debugging easier. Allows you to see the inner/outer loop counts and the datum used
     .attr('data', function (d, i) {
-      var outer_counter = outer.get(this);
-      var str = '' + outer_counter + ':' + i + ' ' + rowNames[outer_counter] + ':' + colNames[i] + ' ' + d;
+      const outer_counter = outer.get(this);
+      const str = '' + outer_counter + ':' + i + ' ' + rowNames[outer_counter] + ':' + colNames[i] + ' ' + d;
       return str;
     })
     .attr('fill', (d) => {
@@ -460,11 +460,11 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
 
         tooltip
           .html(() => {
-            var thisRow = sanitizeHtml(d.row);
-            var thisColumn =sanitizeHtml(d.col);
-            var thisText = sanitizeHtml(d.display.text);
-            var thisSuffix = sanitizeHtml(d.display.suffix);
-            var text = `<div class="${styles.tooltipTable}">
+            const thisRow = sanitizeHtml(d.row);
+            const thisColumn =sanitizeHtml(d.col);
+            const thisText = sanitizeHtml(d.display.text);
+            const thisSuffix = sanitizeHtml(d.display.suffix);
+            const text = `<div class="${styles.tooltipTable}">
   <div class="${styles.tooltipTableCell}">
     <div class="${styles.tooltipTableRowLabel}">${srcText}</div>
   </div>
@@ -516,9 +516,9 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
 
   ////// LEGEND ////////////
   if (options.showLegend) {
-    var legendClass = `legend-${id}`;
+    const legendClass = `legend-${id}`;
 
-    var div = d3
+    d3
       .select(elem)
       .append('div')
       .attr('class', `matrix-legend-${id}`)
@@ -526,9 +526,9 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
       .attr('id', legendClass);
 
 ////////////// range - bar //////////////////////
-    if (options.legendType == 'range') {
-      var svg = d3.select(`#${legendClass}`);
-      svg
+    if (options.legendType === 'range') {
+      const svgLegend = d3.select(`#${legendClass}`);
+      svgLegend
         // legend bar starts at x=25, legend squares are 10x10, allow 9px per label character
         .attr('width', 25 + (legend.length - 1) * 10 + legend[legend.length - 1].label.length * 9)
         // legend label starts at y=50, allow 16px per label character
@@ -548,7 +548,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
           return 25 + i * 10;
         })
         .attr('y', 20);
-      svg
+      svgLegend
         .append('g')
         .selectAll('legendLabels')
         .data(legend)
@@ -568,8 +568,8 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
         .attr('fill', theme.colors.text.primary);
     } else {
 /////////// categorical - circles ////////////////////////////
-      var svg = d3.select(`#${legendClass}`);
-      svg
+      const svgLegend = d3.select(`#${legendClass}`);
+      svgLegend
         // legend bar starts at x=25, legend circles are drawn every 75px and have a 20px diameter,
         // allow 9px per label character
         .attr('width', 25 + (legend.length - 1) * 75 + 20 + legend[legend.length - 1].label.length * 9)
@@ -607,7 +607,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
 
 function truncateLabel(text, width) {
   text.each(function () {
-    var label = d3.select(this).text();
+    let label = d3.select(this).text();
     if (label.length > width) {
       label = label.slice(0, width) + '...';
     }
