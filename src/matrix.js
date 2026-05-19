@@ -7,14 +7,17 @@ import sanitizeHtml from 'sanitize-html';
 import { Heading } from './types';
 
 /** Create the matrix diagram using d3.
- * @param {*} elem The parent svg element that will house this diagram
- * @param {*} id The panel id
- * @param {*} data The data that will populate the diagram
- * @param {string} src The data series that will act as the source
- * @param {string} target The data series that will act as * the target
- * @param {string} val The data series that will act as the value
- * @param {GrafanaTheme} theme
- * @param {CSSReturnValue} styles
+ * @param {SvgInHtml} elem The parent svg element that will house this diagram
+ * @param {number} id The panel id
+ * @param {any[]} rowNames Row names
+ * @param {any[]} colNames Column names
+ * @param {DataMatrixCell[][]} matrix The data that will populate the diagram
+ * @param {MatrixOptions} options Panel configuration
+ * @param {GrafanaTheme} theme Grafana theme
+ * @param {LegendData[]} legend Legend data
+ * @param {CSSReturnValue} styles CSS styles
+ * @param {Category[]} column categories
+ * @param {Category[]} row categories
  */
 function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend, styles, colCategories, rowCategories) {
   const srcText = sanitizeHtml(options.sourceText),
@@ -692,12 +695,15 @@ const getStyles = (theme: GrafanaTheme2) => {
 
 /**
  *
- * @param {*} data Data for the chord diagram
- * @param {*} id The panel id
- * @param {string} src The data series that will act as the source
- * @param {string} target The data series that will act as * the target
- * @param {string} val The data series that will act as the value
- * @return {*} A d3 callback
+ * @param {any[]} rowNames Row names
+ * @param {any[]} colNames Column names
+ * @param {DataMatrixCell[][]} matrix Data for the matrix diagram
+ * @param {number} id The panel id
+ * @param {MatrixOptions} options Panel configuration
+ * @param {LegendData[]} legend Legend data
+ * @param {Category[]} column categories
+ * @param {Category[]} row categories
+ * @return {SvgInHtml} A d3 callback
  */
 function matrix(rowNames, colNames, matrix, id, options, legend, colCategories, rowCategories) {
   const theme = useTheme2();
