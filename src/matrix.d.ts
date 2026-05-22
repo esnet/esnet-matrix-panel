@@ -6,8 +6,6 @@ export function matrix(
   height: number,
   options: any,
   legend: any,
-  colMetadata: any,
-  colCategories: any,
-  rowMetadata: any,
-  rowCategories: any
+  colCategories: Category[],
+  rowCategories: Category[],
 ): LegacyRef<SVGSVGElement> | undefined;

@@ -1,4 +1,4 @@
-import { FieldOverrideContext, getFieldDisplayName, PanelPlugin, FieldConfigProperty } from '@grafana/data';
+import { Field, FieldConfigProperty, FieldType, PanelPlugin } from '@grafana/data';
 // import { standardOptionsCompat } from 'grafana-plugin-support';
 import { MatrixOptions } from './types';
 import { EsnetMatrix } from './EsnetMatrix';
@@ -45,122 +45,86 @@ plugin.useFieldConfig({
   ]
 });
 
+plugin.setMigrationHandler((panel) => {
+  if (panel.options.sortType === undefined) {
+    panel.options.sortType = 'natural-asc'
+  }
+
+  return panel.options;
+});
+
 plugin.setPanelOptions((builder) => {
   /////////--------- Row and Column options ---------////////////////
+  builder.addSelect({
+    path: 'sortType',
+    name: 'Sort Type',
+    description: 'Sorting to apply to row/column headings',
+    category: RowOptions,
+    defaultValue: 'natural-asc',
+    settings: {
+      allowCustomValue: false,
+      options: [
+        { value: 'none', label: 'None' },
+        { value: 'natural-asc', label: 'Natural ascending' },
+        { value: 'natural-desc', label: 'Natural descending' },
+      ],
+    },
+  });
   builder.addBooleanSwitch({
     path: 'inputList',
-    name: 'Use Static Row/Column Lists',
+    name: 'Use Static Row/Column Headings',
     category: RowOptions,
     defaultValue: false,
   });
   builder.addTextInput({
     path: 'staticRows',
-    name: 'Row Array',
+    name: 'Row Headings',
     description: 'Terms to use as matrix rows (comma separated)',
     category: RowOptions,
     showIf: staticBool(true),
   });
   builder.addTextInput({
     path: 'staticColumns',
-    name: 'Column Array',
+    name: 'Column Headings',
     description: 'Terms to use as matrix columns (comma separated)',
     category: RowOptions,
     showIf: staticBool(true),
   });
-  builder.addSelect({
+  builder.addFieldNamePicker({
     path: 'sourceField',
     name: 'Rows Field',
     description: 'Select the field that should be used for the rows',
     category: RowOptions,
     settings: {
-      allowCustomValue: false,
-      options: [],
-      getOptions: async (context: FieldOverrideContext) => {
-        const options = [];
-        if (context && context.data) {
-          for (const frame of context.data) {
-            for (const field of frame.fields) {
-              const name = getFieldDisplayName(field, frame, context.data);
-              const value = name;
-              options.push({ value, label: name });
-            }
-          }
-        }
-        return Promise.resolve(options);
-      },
+      filter: (field: Field) => field.type === FieldType.string,
     },
-    // defaultValue: options[0],
   });
-  builder.addSelect({
+  builder.addFieldNamePicker({
     path: 'targetField',
     name: 'Columns Field',
     description: 'Select the field to use for the columns',
     category: RowOptions,
     settings: {
-      allowCustomValue: false,
-      options: [],
-      getOptions: async (context: FieldOverrideContext) => {
-        const options = [];
-        if (context && context.data) {
-          for (const frame of context.data) {
-            for (const field of frame.fields) {
-              const name = getFieldDisplayName(field, frame, context.data);
-              const value = name;
-              options.push({ value, label: name });
-            }
-          }
-        }
-        return Promise.resolve(options);
-      },
+      filter: (field: Field) => field.type === FieldType.string,
     },
   });
-  builder.addSelect({
+  builder.addFieldNamePicker({
     path: 'valueField',
     name: 'Value Field',
     description: 'Select the numeric field used to color the matrix cells.',
     category: RowOptions,
     settings: {
-      allowCustomValue: false,
-      options: [],
-      getOptions: async (context: FieldOverrideContext) => {
-        const options = [];
-        if (context && context.data) {
-          for (const frame of context.data) {
-            for (const field of frame.fields) {
-              if (field.type === 'number') {
-                const name = getFieldDisplayName(field, frame, context.data);
-                const value = name;
-                options.push({ value, label: name });
-              }
-            }
-          }
-        }
-        return Promise.resolve(options);
-      },
+      filter: (field: Field) => field.type === FieldType.number,
     },
   });
-  builder.addSelect({
+  builder.addFieldNamePicker({
     path: 'colCategoryField',
     name: 'Column Category Field',
     description: 'Select the field to use for grouping columns into categories',
     category: RowOptions,
     showIf: colGroupingBool(true),
     settings: {
-      allowCustomValue: false,
-      options: [],
-      getOptions: async (context: FieldOverrideContext) => {
-        const options = [{ value: '', label: 'None' }];
-        if (context && context.data) {
-          for (const frame of context.data) {
-            for (const field of frame.fields) {
-              const name = getFieldDisplayName(field, frame, context.data);
-              const value = name;
-              options.push({ value, label: name });
-            }
-          }
-        }
-        return Promise.resolve(options);
-      },
+      filter: (field: Field) => field.type === FieldType.string,
     },
   });
   builder.addBooleanSwitch({
@@ -207,28 +171,14 @@ plugin.setPanelOptions((builder) => {
   });
 
   ////////------------ Row Grouping Options ----------------/////////////
-  builder.addSelect({
+  builder.addFieldNamePicker({
     path: 'rowCategoryField',
     name: 'Row Category Field',
     description: 'Select the field to use for grouping rows into categories',
     category: RowOptions,
     showIf: rowGroupingBool(true),
     settings: {
-      allowCustomValue: false,
-      options: [],
-      getOptions: async (context: FieldOverrideContext) => {
-        const options = [{ value: '', label: 'None' }];
-        if (context && context.data) {
-          for (const frame of context.data) {
-            for (const field of frame.fields) {
-              const name = getFieldDisplayName(field, frame, context.data);
-              const value = name;
-              options.push({ value, label: name });
-            }
-          }
-        }
-        return Promise.resolve(options);
-      },
+      filter: (field: Field) => field.type === FieldType.string,
     },
   });
   builder.addNumberInput({
@@ -261,24 +211,6 @@ plugin.setPanelOptions((builder) => {
   });
 
   ////////------------ General Matrix Options ----------------/////////////
-  builder.addSelect({
-    path: 'aggregationMethod',
-    name: 'Aggregation Method',
-    description: 'How to aggregate values when multiple data points map to the same cell',
-    category: OptionsCategory,
-    showIf: (config: MatrixOptions) => config.enableColGrouping || config.enableRowGrouping,
-    defaultValue: 'sum',
-    settings: {
-      allowCustomValue: false,
-      options: [
-        { value: 'sum', label: 'Sum' },
-        { value: 'avg', label: 'Average' },
-        { value: 'min', label: 'Min' },
-        { value: 'max', label: 'Max' },
-        { value: 'last', label: 'Last' },
-      ],
-    },
-  });
   builder.addBooleanSwitch({
     path: 'showLegend',
     name: 'Show Legend',

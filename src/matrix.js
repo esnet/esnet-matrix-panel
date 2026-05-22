@@ -4,6 +4,7 @@ import { css } from '@emotion/css';
 import { GrafanaTheme2 } from '@grafana/data';
 import { useStyles2, useTheme2 } from '@grafana/ui';
 import sanitizeHtml from 'sanitize-html';
+import { Heading } from './types';
 
 /** Create the matrix diagram using d3.
  * @param {*} elem The parent svg element that will house this diagram
@@ -16,7 +17,7 @@ import sanitizeHtml from 'sanitize-html';
  * @param {GrafanaTheme} theme
  * @param {CSSReturnValue} styles
  */
-function createViz(elem, id, height, rowNames, colNames, matrix, options, theme, legend, styles, colMetadata, colCategories, rowMetadata, rowCategories) {
+function createViz(elem, id, height, rowNames, colNames, matrix, options, theme, legend, styles, colCategories, rowCategories) {
   const srcText = sanitizeHtml(options.sourceText),
     targetText = sanitizeHtml(options.targetText),
     valText = sanitizeHtml(options.valueText),
@@ -66,16 +67,16 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     : 0;
 
   // Calculate column positions with gaps between colCategories
-  let columnPositions = [];
+  const columnPositions: Heading[] = [];
   let totalWidth = 0;
 
   if (options.enableColGrouping && colCategories && colCategories.length > 0) {
     // Calculate positions with category gaps
     colCategories.forEach((category, catIndex) => {
-      const numCols = category.columns.length;
+      const numCols = category.items.length;
       const groupWidth = numCols * cellSize;
 
-      category.columns.forEach((colName, indexInCat) => {
+      category.items.forEach((colName, indexInCat) => {
         columnPositions.push({
           name: colName,
           x: totalWidth + (indexInCat * cellSize),
@@ -113,15 +114,15 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
     : 0;
 
   // Calculate row positions with gaps between colCategories
-  let rowPositions = [];
+  const rowPositions: Heading[] = [];
   let totalHeight = 0;
 
   if (options.enableRowGrouping && rowCategories && rowCategories.length > 0) {
     rowCategories.forEach((category, catIndex) => {
-      const numRows = category.rows.length;
+      const numRows = category.items.length;
       const groupHeight = numRows * cellSize;
 
-      category.rows.forEach((rowName, indexInCat) => {
+      category.items.forEach((rowName, indexInCat) => {
         rowPositions.push({
           name: rowName,
           y: totalHeight + (indexInCat * cellSize),
@@ -267,8 +268,23 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
       .attr('transform', `translate(0, ${-colTxtOffset - colCategoryHeaderHeight})`);
 
     colCategories.forEach((category, catIndex) => {
-      const startPos = columnPositions[category.startIndex];
-      const endPos = columnPositions[category.endIndex];
+      // find first and last column heading for this category
+      let startPos = undefined;
+      let endPos = undefined;
+      for (let i = 0; i < columnPositions.length; i++) {
+        if (columnPositions[i].category === category.name) {
+          if (startPos === undefined) {
+            // first column heading for the category
+            startPos = columnPositions[i];
+            endPos = columnPositions[i];
+          } else {
+            endPos = columnPositions[i];
+          }
+        } else if (startPos !== undefined) {
+          // no more column headings for this category
+          break;
+        }
+      }
 
       if (startPos && endPos) {
         const groupX = startPos.x;
@@ -314,8 +330,23 @@ function createViz(elem, id, height, rowNames, colNames, matrix, options, theme,
       .attr('transform', `translate(${-rowTxtOffset - rowCategoryHeaderWidth}, 0)`);
 
     rowCategories.forEach((category, catIndex) => {
-      const startPos = rowPositions[category.startIndex];
-      const endPos = rowPositions[category.endIndex];
+      // find first and last row heading for this category
+      let startPos = undefined;
+      let endPos = undefined;
+      for (let i = 0; i < rowPositions.length; i++) {
+        if (rowPositions[i].category === category.name) {
+          if (startPos === undefined) {
+            // first row heading for the category
+            startPos = rowPositions[i];
+            endPos = rowPositions[i];
+          } else {
+            endPos = rowPositions[i];
+          }
+        } else if (startPos !== undefined) {
+          // no more row headings for this category
+          break;
+        }
+      }
 
       if (startPos && endPos) {
         const groupY = startPos.y;
@@ -670,11 +701,11 @@ const getStyles = (theme: GrafanaTheme2) => {
  * @param {number} height Height of panel
  * @return {*} A d3 callback
  */
-function matrix(rowNames, colNames, matrix, id, height, options, legend, colMetadata, colCategories, rowMetadata, rowCategories) {
+function matrix(rowNames, colNames, matrix, id, height, options, legend, colCategories, rowCategories) {
   const theme = useTheme2();
   const styles = useStyles2(getStyles);
   const ref = useD3((svg) => {
-    createViz(svg, id, height, rowNames, colNames, matrix, options, theme, legend, styles, colMetadata, colCategories, rowMetadata, rowCategories);
+    createViz(svg, id, height, rowNames, colNames, matrix, options, theme, legend, styles, colCategories, rowCategories);
   });
   return ref;
 }
