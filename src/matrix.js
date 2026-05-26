@@ -706,6 +706,7 @@ const getStyles = (theme: GrafanaTheme2) => {
  * @return {SvgInHtml} A d3 callback
  */
 function matrix(rowNames, colNames, matrix, id, options, legend, colCategories, rowCategories) {
+  /* eslint-disable react-hooks/rules-of-hooks */
   const theme = useTheme2();
   const styles = useStyles2(getStyles);
   const ref = useD3((svg) => {
