@@ -1,10 +1,11 @@
 import { useD3 } from './useD3.js';
 import * as d3 from './d3.min.js';
 import { css } from '@emotion/css';
-import { GrafanaTheme2 } from '@grafana/data';
+import { GrafanaTheme2, textUtil } from '@grafana/data';
 import { useStyles2, useTheme2 } from '@grafana/ui';
-import sanitizeHtml from 'sanitize-html';
 import { Heading } from './types';
+
+const sanitizeHtml = textUtil.sanitize;
 
 /** Create the matrix diagram using d3.
  * @param {SvgInHtml} elem The parent svg element that will house this diagram
