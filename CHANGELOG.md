@@ -29,6 +29,7 @@ update grafana tooling to webpack
 - adds grouping feature for rows/columns
 
 ## 2.1.0
-- refactor to align with create-plugin 7.3
 - fixes truncation bug that was introduced
 - adds sort options for rows/columns
+- refactor to align with create-plugin 7.3
+- improves type annotations
