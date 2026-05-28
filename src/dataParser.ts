@@ -88,9 +88,10 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
       return nullColor;
     } else if (v === -1) {
       return defaultColor;
-    } else {
-      return valueField.display(v).color;
+    } else if (valueField?.display) {
+      return valueField.display(v).color ?? defaultColor;
     }
+    return defaultColor;
   }
 
   // Aggregation helper
@@ -119,18 +120,20 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
         // new row heading
         rowNamesSet.add(rowName);
 
-        const categoryName = row[rowCategoryKey];
-        if (rowGrouping && categoryName != null) {
-          if (!rowCategoriesMap.has(categoryName)) {
-            // new row category
-            rowCategoriesMap.set(categoryName, {
-              name: categoryName,
-              items: [rowName],
-            });
-          } else {
-            // append row heading to existing row category
-            const category = rowCategoriesMap.get(categoryName);
-            category?.items.push(rowName);
+        if (rowGrouping) {
+          const categoryName = row[rowCategoryKey];
+          if (categoryName != null) {
+            if (!rowCategoriesMap.has(categoryName)) {
+              // new row category
+              rowCategoriesMap.set(categoryName, {
+                name: categoryName,
+                items: [rowName],
+              });
+            } else {
+              // append row heading to existing row category
+              const category = rowCategoriesMap.get(categoryName);
+              category?.items.push(rowName);
+            }
           }
         }
       }
@@ -140,18 +143,20 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
         // new column heading
         colNamesSet.add(colName);
 
-        const categoryName = row[colCategoryKey];
-        if (colGrouping && categoryName != null) {
-          if (!colCategoriesMap.has(categoryName)) {
-            // new column category
-            colCategoriesMap.set(categoryName, {
-              name: categoryName,
-              items: [colName],
-            });
-          } else {
-            // append column heading to existing column category
-            const category = colCategoriesMap.get(categoryName);
-            category?.items.push(colName);
+        if (colGrouping) {
+          const categoryName = row[colCategoryKey];
+          if (categoryName != null) {
+            if (!colCategoriesMap.has(categoryName)) {
+              // new column category
+              colCategoriesMap.set(categoryName, {
+                name: categoryName,
+                items: [colName],
+              });
+            } else {
+              // append column heading to existing column category
+              const category = colCategoriesMap.get(categoryName);
+              category?.items.push(colName);
+            }
           }
         }
       }
@@ -230,7 +235,7 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
         col: colName,
         val: v,
         color: colorMap(v),
-        display: valueField.display(v),
+        display: valueField.display ? valueField.display(v) : { numeric: 0, text: '' },
       };
     }
   });
@@ -259,14 +264,17 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
     tempValues.forEach((val) => {
       // find display values, unit & color for each
       // store in array
-      let text = valueField.display(val).text;
-      if (valueField.display(val).suffix) {
-        text = text + ` ${valueField.display(val).suffix}`;
+      let text = '';
+      if (valueField.display) {
+        text = valueField.display(val).text;
+        if (valueField.display(val).suffix) {
+          text = text + ` ${valueField.display(val).suffix}`;
+        }
       }
-        legendData.push({
-          label: text,
-          color: colorMap(val),
-        });
+      legendData.push({
+        label: text,
+        color: colorMap(val),
+      });
     });
   }
 
