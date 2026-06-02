@@ -13,11 +13,8 @@ import { EsnetMatrix } from './EsnetMatrix';
  * @return {*} { builder: PanelOptionsEditorBuilder<NetSageSankeyOptions> }
  */
 const OptionsCategory = ['Display'];
-const URLCategory = ['Link Options'];
 const RowOptions = ['Row/Column Options'];
 
-const urlBool = (addUrl: boolean) => (config: MatrixOptions) => config.addUrl === addUrl;
-// const eurlOtherBool = (urlOther: boolean) => (config: MatrixOptions) => config.urlOther === urlOther;
 const staticBool = (inputList: boolean) => (config: MatrixOptions) => config.inputList === inputList;
 const legendBool = (showLegend: boolean) => (config: MatrixOptions) => config.showLegend === showLegend;
 const colGroupingBool = (enableColGrouping: boolean) => (config: MatrixOptions) => config.enableColGrouping === enableColGrouping;
@@ -41,13 +38,53 @@ plugin.useFieldConfig({
   },
   disableStandardOptions: [
     FieldConfigProperty.NoValue,
-    FieldConfigProperty.Links,
   ]
 });
 
 plugin.setMigrationHandler((panel) => {
   if (panel.options.sortType === undefined) {
     panel.options.sortType = 'natural-asc'
+  }
+
+  if (panel.options.addUrl) {
+    // Migrate link configuration to a grafana data link
+    let url = panel.options.url;
+    const sourceField = panel.options.sourceField;
+    const targetField = panel.options.targetField;
+    if (url !== undefined) {
+      const variableRegex = /\w+/;
+      const urlVar1 = panel.options.urlVar1;
+      if (
+        urlVar1 !== undefined && urlVar1.match(variableRegex)
+        && sourceField !== undefined && sourceField.length >= 1
+      ) {
+        url = url.concat(
+          '&var-' + urlVar1 + '=${__data.fields["' + encodeURIComponent(sourceField) + '"]}',
+        );
+      }
+      const urlVar2 = panel.options.urlVar2;
+      if (
+        urlVar2 !== undefined && urlVar2.match(variableRegex)
+        && targetField !== undefined && targetField.length >= 1
+      ) {
+        url = url.concat(
+          '&var-' + urlVar2 + '=${__data.fields["' + encodeURIComponent(targetField) + '"]}',
+        );
+      }
+
+      if (!panel.fieldConfig.defaults.links) {
+        panel.fieldConfig.defaults.links = [];
+      }
+      panel.fieldConfig.defaults.links.push({
+        'title': 'Show details',
+        'url': url,
+      });
+    }
+
+    delete panel.options.addUrl;
+    delete panel.options.url;
+    delete panel.options.urlVar1;
+    delete panel.options.urlVar2;
   }
 
   return panel.options;
@@ -325,48 +362,4 @@ plugin.setPanelOptions((builder) => {
     category: OptionsCategory,
     defaultValue: '#E6E6E6',
   });
-
-  /////////----------- Link URL options ---------------////////////////
-  builder.addBooleanSwitch({
-    path: 'addUrl',
-    name: 'Add Data Link',
-    category: URLCategory,
-    defaultValue: false,
-  });
-  builder.addTextInput({
-    path: 'url',
-    name: 'Link URL',
-    description: 'URL to go to when square is clicked.',
-    category: URLCategory,
-    showIf: urlBool(true),
-  });
-  builder.addTextInput({
-    path: 'urlVar1',
-    name: 'Variable 1',
-    description: 'The name of the template variable to pass the source label to',
-    category: URLCategory,
-    showIf: urlBool(true),
-  });
-  builder.addTextInput({
-    path: 'urlVar2',
-    name: 'Variable 2',
-    description: 'The name of the template variable to pass the target label to',
-    category: URLCategory,
-    showIf: urlBool(true),
-  });
-  // builder.addBooleanSwitch({
-  //   path: 'urlOther',
-  //   name: 'Append more text',
-  //   description: 'Ex: date',
-  //   category: URLCategory,
-  //   defaultValue: true,
-  //   showIf: urlBool(true),
-  // });
-  // builder.addTextInput({
-  //   path: 'urlOtherText',
-  //   name: 'Text',
-  //   description: 'Other text to append to URL',
-  //   category: URLCategory,
-  //   showIf: urlOtherBool(true),
-  // });
 });

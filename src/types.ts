@@ -1,4 +1,4 @@
-import { DisplayValue } from '@grafana/data';
+import { DisplayValue, LinkModel } from '@grafana/data';
 
 export interface MatrixOptions {
   sortType: string;
@@ -22,12 +22,10 @@ export interface MatrixOptions {
   sourceText: string;
   targetText: string;
   valueText: string;
-  addUrl: boolean;
-  url: string;
-  urlVar1: string;
-  urlVar2: string;
-  urlOther: boolean;
-  urlOtherText: string;
+  addUrl: boolean | undefined;
+  url: string | undefined;
+  urlVar1: string | undefined;
+  urlVar2: string | undefined;
   inputList: boolean;
   staticRows: string;
   staticColumns: string;
@@ -64,6 +62,7 @@ export type DataMatrixCell = {
   val: number;
   color: string;
   display: DisplayValue;
+  url: LinkModel | undefined;
 };
 
 export type LegendData = {
