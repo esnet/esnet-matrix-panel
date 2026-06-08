@@ -4,6 +4,7 @@ import baseConfig from './.config/eslint.config.mjs';
 export default defineConfig([
   {
     ignores: [
+      'src/d3.min.js',
       '**/logs',
       '**/*.log',
       '**/npm-debug.log*',
