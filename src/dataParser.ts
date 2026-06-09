@@ -218,19 +218,27 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
     dataMatrix.push(new Array(colNames.length).fill(-1));
   }
 
-  frame.forEach((row) => {
+  frame.forEach((row, idx) => {
     const rowName = row[sourceKey];
     const colName = row[targetKey];
     const r = rowNames.indexOf(rowName);
     const c = colNames.indexOf(colName);
     const v = row[valKey];
     if (r > -1 && c > -1) {
+      let url = undefined;
+      if ((valueField.config.links?.length ?? 0) > 0 && valueField.getLinks) {
+        const links = valueField.getLinks({ valueRowIndex: idx });
+        if (links.length >= 1) {
+          url = links[0];
+        }
+      }
       dataMatrix[r][c] = {
         row: rowName,
         col: colName,
         val: v,
         color: colorMap(v),
         display: valueField.display(v),
+        url: url,
       };
     }
   });

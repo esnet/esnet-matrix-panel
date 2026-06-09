@@ -31,6 +31,12 @@
           "color": {
             "mode": "continuous-GrYlRd"
           },
+          "links": [
+            {
+              "title": "Show details",
+              "url": "http://localhost:3000/d/a538aeff-5a8a-42a5-901c-938d896fdd6f/provisioned-matrix-dashboard?var-Source=${__data.fields.Source}﻿&var-Destination=${__data.fields.Destination}"
+            }
+          ],
           "mappings": [],
           "thresholds": {
             "mode": "absolute",

@@ -28,13 +28,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
     cellPadding = options.cellPadding / 100, // convert the cellPadding integer to a float that can be used by d3
     txtLength = options.txtLength,
     txtSize = options.txtSize / 10, //convert this val to EM scaling 90 = .9em 100 = 1em ... etc
-    linkURL = options.url,
-    urlVar1 = options.urlVar1,
-    urlVar2 = options.urlVar2,
     defaultColor = theme.visualization.getColorByName(options.defaultColor);
-
-  // urlOther = options.urlOther,
-  // urlOtherText = options.urlOtherText;
 
   // do a bit of work to setup the visual layout of the wiget --------
   if (elem === null) {
@@ -414,15 +408,13 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
     .enter()
     .append('a')
     .attr('xlink:href', (d) => {
-      if (linkURL) {
-        let thisURL = linkURL;
-        if (urlVar1) {
-          thisURL = thisURL.concat(`&var-${urlVar1}=${d.row}`);
-        }
-        if (urlVar2) {
-          thisURL = thisURL.concat(`&var-${urlVar2}=${d.col}`);
-        }
-        return thisURL;
+      if (d.url) {
+        return d.url.href;
+      }
+    })
+    .attr('xlink:target', (d) => {
+      if (d.url) {
+        return d.url.target;
       }
     })
     .append('rect')
@@ -508,11 +500,6 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
         .delay(100)
         .duration(150)
         .style('opacity', 0)
-    })
-    .on('click', function (d) {
-      if(linkURL) {
-        tooltip.remove();
-      }
     });
 
   ////// LEGEND ////////////
