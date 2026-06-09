@@ -50,12 +50,16 @@ export type Heading = {
 };
 
 export type MatrixData = {
-  rowNames: string[] | null;
-  colNames: string[] | null;
-  colCategories: Category[];
+  rowNames: string[];
   rowCategories: Category[];
-  data: DataMatrixCell[][] | string | null;
-  legend: LegendData[] | null;
+  colNames: string[];
+  colCategories: Category[];
+  data: DataMatrixCell[][];
+  legend: LegendData[];
+};
+
+export type MatrixDataError = {
+  error: string;
 };
 
 export type DataMatrixCell = {

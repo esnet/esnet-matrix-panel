@@ -1,5 +1,5 @@
 import { DataFrameView, Field, FieldType, getFieldDisplayName, GrafanaTheme2, PanelData } from '@grafana/data';
-import { Category, DataMatrixCell, LegendData, MatrixData, MatrixOptions } from './types';
+import { Category, DataMatrixCell, LegendData, MatrixData, MatrixDataError, MatrixOptions } from './types';
 
 /**
  * this function creates an adjacency matrix to be consumed by the matrix diagram
@@ -13,19 +13,17 @@ import { Category, DataMatrixCell, LegendData, MatrixData, MatrixOptions } from 
  * @return {MatrixData}
  */
 
-export function parseData(data: PanelData, options: MatrixOptions, theme: GrafanaTheme2): MatrixData {
+export function parseData(data: PanelData, options: MatrixOptions, theme: GrafanaTheme2): MatrixData | MatrixDataError {
   const series = data.series[0];
   if (series === null || series === undefined) {
     // no data, bail
-    console.error('no data');
-    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null };
+    return { error: 'no data' };
   }
 
   const frame = new DataFrameView(series);
   if (frame === null || frame === undefined) {
     // no data, bail
-    console.error('no data');
-    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null };
+    return { error: 'no data' };
   }
   // set fields
   const sourceField = series.fields.find((f: Field) =>
@@ -75,8 +73,7 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
     || valueField === undefined || valKey === undefined
   ) {
     // no data, bail
-    console.error('no data');
-    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null };
+    return { error: 'no data' };
   }
 
   // function that maps value to color specified by Standard Options panel.
@@ -160,13 +157,12 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
 
   if (rowNamesSet.size === 0 || colNamesSet.size === 0) {
     // no data, bail
-    console.error('no data');
-    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null };
+    return { error: 'no data' };
   }
 
   const numSquaresInMatrix = rowNamesSet.size * colNamesSet.size;
   if (numSquaresInMatrix > 50000) {
-    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: 'too many inputs', legend: null };
+    return { error: 'too many inputs' };
   }
 
   const rowNames: any[] = Array.from(rowNamesSet);
