@@ -1,12 +1,20 @@
+import { GrafanaTheme2 } from '@grafana/data';
 import { MatrixData, MatrixOptions } from './types';
 
-export function matrix(
-  rowNames: any[],
-  colNames: any[],
-  matrix: DataMatrixCell[][],
+export function createViz(
+  elem: RefObject<HTMLDivElement>,
   id: number,
+  theme: GrafanaTheme2,
+  styles: CSSReturnValue,
   options: MatrixOptions,
-  legend: LegendData[],
-  colCategories: Category[],
+  rowNames: any[],
   rowCategories: Category[],
-): LegacyRef<SVGSVGElement> | undefined;
+  colNames: any[],
+  colCategories: Category[],
+  data: DataMatrixCell[][],
+  legend: LegendData[],
+);
+
+export function getStyles(
+  theme: GrafanaTheme2,
+): CSSReturnValue;

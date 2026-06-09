@@ -1,26 +1,24 @@
-import { useD3 } from './useD3.js';
 import * as d3 from './d3.min.js';
 import { css } from '@emotion/css';
 import { GrafanaTheme2, textUtil } from '@grafana/data';
-import { useStyles2, useTheme2 } from '@grafana/ui';
 import { Heading } from './types';
 
 const sanitizeHtml = textUtil.sanitize;
 
 /** Create the matrix diagram using d3.
- * @param {SvgInHtml} elem The parent svg element that will house this diagram
+ * @param {HTMLDivElement} elem The parent svg element that will house this diagram
  * @param {number} id The panel id
+ * @param {GrafanaTheme} theme Grafana theme
+ * @param {CSSReturnValue} styles CSS styles
+ * @param {MatrixOptions} options Panel configuration
  * @param {any[]} rowNames Row names
  * @param {any[]} colNames Column names
- * @param {DataMatrixCell[][]} matrix The data that will populate the diagram
- * @param {MatrixOptions} options Panel configuration
- * @param {GrafanaTheme} theme Grafana theme
+ * @param {DataMatrixCell[][]} data The data that will populate the diagram
  * @param {LegendData[]} legend Legend data
- * @param {CSSReturnValue} styles CSS styles
  * @param {Category[]} column categories
  * @param {Category[]} row categories
  */
-function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend, styles, colCategories, rowCategories) {
+function createViz(elem, id, theme, styles, options, rowNames, rowCategories, colNames, colCategories, data, legend) {
   const srcText = sanitizeHtml(options.sourceText),
     targetText = sanitizeHtml(options.targetText),
     valText = sanitizeHtml(options.valueText),
@@ -403,7 +401,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
 
   //this selection breaks the data down to the row level. This is
   //needed because the underlying datastructure is a 2d array
-  const rows = rectArea.selectAll('g').data(matrix).enter().append('g').attr('class', 'row');
+  const rows = rectArea.selectAll('g').data(data).enter().append('g').attr('class', 'row');
 
   const rects = rows
     .selectAll('rect')
@@ -694,26 +692,4 @@ const getStyles = (theme: GrafanaTheme2) => {
   };
 };
 
-/**
- *
- * @param {any[]} rowNames Row names
- * @param {any[]} colNames Column names
- * @param {DataMatrixCell[][]} matrix Data for the matrix diagram
- * @param {number} id The panel id
- * @param {MatrixOptions} options Panel configuration
- * @param {LegendData[]} legend Legend data
- * @param {Category[]} column categories
- * @param {Category[]} row categories
- * @return {SvgInHtml} A d3 callback
- */
-function matrix(rowNames, colNames, matrix, id, options, legend, colCategories, rowCategories) {
-  /* eslint-disable react-hooks/rules-of-hooks */
-  const theme = useTheme2();
-  const styles = useStyles2(getStyles);
-  const ref = useD3((svg) => {
-    createViz(svg, id, rowNames, colNames, matrix, options, theme, legend, styles, colCategories, rowCategories);
-  });
-  return ref;
-}
-
-export { matrix };
+export { createViz, getStyles };
