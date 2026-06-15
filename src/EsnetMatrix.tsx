@@ -2,7 +2,7 @@ import React from 'react';
 import { FieldConfigSource, PanelProps } from '@grafana/data';
 import { MatrixOptions } from 'types';
 import { parseData } from 'dataParser';
-import { useTheme2, CustomScrollbar } from '@grafana/ui';
+import { useTheme2, ScrollContainer } from '@grafana/ui';
 
 import * as Matrix from './matrix.js';
 
@@ -47,8 +47,8 @@ export const EsnetMatrix: React.FC<Props> = ({ options, data, width, height, id 
   const thisPanelClass = `matrix-panel-${id}`;
 
   return (
-    <CustomScrollbar autoHeightMin="100%">
+    <ScrollContainer minHeight="100%">
       <div ref={ref} id={thisPanelClass}></div>
-    </CustomScrollbar>
+    </ScrollContainer>
   );
 };
