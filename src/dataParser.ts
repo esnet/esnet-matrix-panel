@@ -218,13 +218,16 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
     dataMatrix.push(new Array(colNames.length).fill(-1));
   }
 
+  const rowNamesMap = new Map(rowNames.map((name, idx) => [name, idx]));
+  const colNamesMap = new Map(colNames.map((name, idx) => [name, idx]));
+
   frame.forEach((row) => {
     const rowName = row[sourceKey];
     const colName = row[targetKey];
-    const r = rowNames.indexOf(rowName);
-    const c = colNames.indexOf(colName);
+    const r = rowNamesMap.get(rowName);
+    const c = colNamesMap.get(colName);
     const v = row[valKey];
-    if (r > -1 && c > -1) {
+    if (r !== undefined && c !== undefined) {
       dataMatrix[r][c] = {
         row: rowName,
         col: colName,
