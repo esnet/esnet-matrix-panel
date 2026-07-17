@@ -1,0 +1,9 @@
+source,target,errors
+alpha,x,0
+alpha,y,5
+alpha,z,
+beta,x,12
+beta,y,
+beta,z,3
+gamma,x,7
+gamma,z,20

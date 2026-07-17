@@ -15,6 +15,8 @@ import { EsnetMatrix } from './EsnetMatrix';
 const OptionsCategory = ['Display'];
 const URLCategory = ['Link Options'];
 const RowOptions = ['Row/Column Options'];
+const ColorCategory = ['Colors'];
+const LayoutCategory = ['Layout'];
 
 const urlBool = (addUrl: boolean) => (config: MatrixOptions) => config.addUrl === addUrl;
 // const eurlOtherBool = (urlOther: boolean) => (config: MatrixOptions) => config.urlOther === urlOther;
@@ -137,6 +139,34 @@ plugin.setPanelOptions((builder) => {
         }
         return Promise.resolve(options);
       },
+    },
+  });
+  builder.addSelect({
+    path: 'rowSort',
+    name: 'Row Order',
+    description: 'How to order the rows. "Total" sorts by each row\'s summed value (largest first) to surface hot rows.',
+    category: RowOptions,
+    defaultValue: 'name',
+    settings: {
+      allowCustomValue: false,
+      options: [
+        { value: 'name', label: 'By name (A→Z)' },
+        { value: 'total', label: 'By total (largest first)' },
+      ],
+    },
+  });
+  builder.addSelect({
+    path: 'colSort',
+    name: 'Column Order',
+    description: 'How to order the columns. "Total" sorts by each column\'s summed value (largest first).',
+    category: RowOptions,
+    defaultValue: 'name',
+    settings: {
+      allowCustomValue: false,
+      options: [
+        { value: 'name', label: 'By name (A→Z)' },
+        { value: 'total', label: 'By total (largest first)' },
+      ],
     },
   });
   builder.addSelect({
@@ -353,6 +383,45 @@ plugin.setPanelOptions((builder) => {
   });
 
   builder.addNumberInput({
+    path: 'cellCornerRadius',
+    name: 'Cell Corner Radius',
+    description: 'Rounds the corners of each cell (pixels). Set to 0 for square cells.',
+    category: OptionsCategory,
+    settings: {
+      placeholder: 'Auto',
+      integer: true,
+      min: 0,
+      max: 20,
+    },
+    defaultValue: 2,
+  });
+
+  builder.addBooleanSwitch({
+    path: 'highlightRowCol',
+    name: 'Highlight Row & Column on Hover',
+    description: 'Dims other cells and emphasizes the hovered cell\'s row and column.',
+    category: OptionsCategory,
+    defaultValue: true,
+  });
+
+  builder.addBooleanSwitch({
+    path: 'showCellValues',
+    name: 'Show Values in Cells',
+    description: 'Prints the value inside each cell when it is large enough to fit.',
+    category: OptionsCategory,
+    defaultValue: true,
+  });
+
+  builder.addBooleanSwitch({
+    path: 'showGroupDividers',
+    name: 'Show Category Group Dividers',
+    description: 'Draws subtle background bands behind grouped rows/columns.',
+    category: OptionsCategory,
+    showIf: (config: MatrixOptions) => config.enableColGrouping || config.enableRowGrouping,
+    defaultValue: true,
+  });
+
+  builder.addNumberInput({
     path: 'txtLength',
     name: 'Text Length',
     description: 'Maximum number of characters to display before truncating labels',
@@ -379,19 +448,87 @@ plugin.setPanelOptions((builder) => {
     },
     defaultValue: 10,
   });
+  builder.addSelect({
+    path: 'colorMode',
+    name: 'Cell Color Mode',
+    description:
+      'How cell colors are derived. Sequential = single-hue ramp for magnitude. Diverging = two hues around a baseline. Standard = use the Standard Options color scheme / thresholds.',
+    category: ColorCategory,
+    defaultValue: 'sequential',
+    settings: {
+      allowCustomValue: false,
+      options: [
+        { value: 'sequential', label: 'Sequential (single hue)' },
+        { value: 'diverging', label: 'Diverging (around a baseline)' },
+        { value: 'standard', label: 'Standard Options (thresholds)' },
+      ],
+    },
+  });
+  builder.addNumberInput({
+    path: 'divergingMidpoint',
+    name: 'Diverging Midpoint',
+    description: 'The value treated as neutral (gray). Values above and below diverge to the two hues.',
+    category: ColorCategory,
+    showIf: (config: MatrixOptions) => config.colorMode === 'diverging',
+    defaultValue: 0,
+  });
+  builder.addBooleanSwitch({
+    path: 'distinctNoData',
+    name: 'Distinguish No-Data Cells',
+    description: 'Renders cells with no matching data as empty/outlined so they read differently from null values.',
+    category: ColorCategory,
+    defaultValue: true,
+  });
   builder.addColorPicker({
     path: 'nullColor',
     name: 'Null Color',
     description: 'The color to use when the query returns a null value',
-    category: OptionsCategory,
+    category: ColorCategory,
     defaultValue: '#E6E6E6',
   });
   builder.addColorPicker({
     path: 'defaultColor',
     name: 'No Data Color',
     description: 'The color to use when there is no data returned by the query',
-    category: OptionsCategory,
+    category: ColorCategory,
     defaultValue: '#E6E6E6',
+  });
+
+  /////////----------- Layout & encoding options ---------------////////////////
+  builder.addSelect({
+    path: 'sizeMode',
+    name: 'Sizing',
+    description: 'Fit scales cells to fill the panel. Fixed uses the exact Cell Size in pixels (may scroll).',
+    category: LayoutCategory,
+    defaultValue: 'fit',
+    settings: {
+      allowCustomValue: false,
+      options: [
+        { value: 'fit', label: 'Fit to panel' },
+        { value: 'fixed', label: 'Fixed cell size' },
+      ],
+    },
+  });
+  builder.addBooleanSwitch({
+    path: 'freezeLabels',
+    name: 'Freeze Axis Labels',
+    description: 'Keeps the row and column labels pinned while the cell grid scrolls.',
+    category: LayoutCategory,
+    defaultValue: true,
+  });
+  builder.addBooleanSwitch({
+    path: 'showMarginalTotals',
+    name: 'Show Marginal Totals',
+    description: 'Adds small summary bars of row and column totals along the edges.',
+    category: LayoutCategory,
+    defaultValue: false,
+  });
+  builder.addBooleanSwitch({
+    path: 'sizeEncodesValue',
+    name: 'Size Encodes Value',
+    description: 'Scales each cell\'s filled area by its value, so magnitude reads through both color and size.',
+    category: LayoutCategory,
+    defaultValue: false,
   });
 
   /////////----------- Link URL options ---------------////////////////

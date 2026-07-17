@@ -13,19 +13,49 @@ import { DataFrameView } from '@grafana/data';
  * @return {[rowNames, colNames, dataMatrix]}
  */
 
+// ---- Color ramp helpers (self-contained, no d3 dependency) ----
+function hexToRgb(h: string): [number, number, number] {
+  let s = h.replace('#', '');
+  if (s.length === 3) {
+    s = s[0] + s[0] + s[1] + s[1] + s[2] + s[2];
+  }
+  return [parseInt(s.slice(0, 2), 16), parseInt(s.slice(2, 4), 16), parseInt(s.slice(4, 6), 16)];
+}
+function rgbToHex(r: number, g: number, b: number): string {
+  const c = (x: number) => Math.round(Math.max(0, Math.min(255, x))).toString(16).padStart(2, '0');
+  return '#' + c(r) + c(g) + c(b);
+}
+// Build an interpolator over a list of hex stops, t in [0,1]
+function makeRamp(stops: string[]): (t: number) => string {
+  const rgb = stops.map(hexToRgb);
+  return (t: number) => {
+    t = Math.max(0, Math.min(1, t));
+    const n = rgb.length - 1;
+    const f = t * n;
+    const i = Math.min(Math.floor(f), n - 1);
+    const frac = f - i;
+    const a = rgb[i];
+    const b = rgb[i + 1];
+    return rgbToHex(a[0] + (b[0] - a[0]) * frac, a[1] + (b[1] - a[1]) * frac, a[2] + (b[2] - a[2]) * frac);
+  };
+}
+
+// Sequential single-hue blue ramp, light -> dark (dataviz reference palette)
+const SEQ_STOPS = ['#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95', '#0d366b'];
+
 export function parseData(data: { series: any[] }, options: any, theme: any) {
   const series = data.series[0];
   if (series === null || series === undefined) {
     // no data, bail
     console.error('no data');
-    return { rows: null, columns: null, colMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: null, legend: null };
+    return { rows: null, columns: null, colMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: null, legend: null, rowTotals: [], colTotals: [], valueDomain: null };
   }
 
   const frame = new DataFrameView(series);
   if (frame === null || frame === undefined) {
     // no data, bail
     console.error('no data');
-    return { rows: null, columns: null, colMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: null, legend: null };
+    return { rows: null, columns: null, colMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: null, legend: null, rowTotals: [], colTotals: [], valueDomain: null };
   }
   // set fields
   let sourceKey = options.sourceField;
@@ -48,6 +78,37 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
       );
   const valKey = valueField[0].name;
 
+  // ---- Determine the value domain (min/max) for the built-in color ramps ----
+  let allNumericValues: number[] = (Object.values(frame.fields[valKey].values) as any[]).filter(
+    (v) => typeof v === 'number' && !isNaN(v)
+  );
+  const domainMin = allNumericValues.length ? Math.min(...allNumericValues) : 0;
+  const domainMax = allNumericValues.length ? Math.max(...allNumericValues) : 0;
+  const valueDomain = allNumericValues.length ? { min: domainMin, max: domainMax } : null;
+
+  // ---- Build the color scale for the chosen colorMode ----
+  const colorMode = options.colorMode || 'sequential';
+  const isDark = !!theme.isDark;
+  let colorScale: ((v: number) => string) | null = null;
+  if (colorMode === 'sequential') {
+    // In dark mode flip the ramp so high magnitude reads bright, low recedes to the surface
+    const stops = isDark ? [...SEQ_STOPS].reverse() : SEQ_STOPS;
+    const ramp = makeRamp(stops);
+    colorScale = (v: number) => {
+      if (domainMax === domainMin) {
+        return ramp(isDark ? 1 : 0.5);
+      }
+      return ramp((v - domainMin) / (domainMax - domainMin));
+    };
+  } else if (colorMode === 'diverging') {
+    const mid = typeof options.divergingMidpoint === 'number' ? options.divergingMidpoint : 0;
+    const gray = isDark ? '#383835' : '#f0efec';
+    // blue (low) <-> neutral gray (mid) <-> red (high)
+    const ramp = makeRamp(['#184f95', '#3987e5', gray, '#e34948', '#b3261e']);
+    const maxAbs = Math.max(Math.abs(mid - domainMin), Math.abs(domainMax - mid)) || 1;
+    colorScale = (v: number) => ramp(0.5 + 0.5 * ((v - mid) / maxAbs));
+  }
+
   // function that maps value to color specified by Standard Options panel.
   // if value is null or was not returned by query, use different value
   const nullColor = theme.visualization.getColorByName(options.nullColor);
@@ -57,6 +118,8 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
       return nullColor;
     } else if (v === -1) {
       return defaultColor;
+    } else if (colorScale) {
+      return colorScale(v);
     } else {
       return valueField[0].display(v).color;
     }
@@ -93,6 +156,13 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   let compositeColKeys: string[] = [];
   let compositeRowKeys: string[] = [];
 
+  // Marginal sums per composite key (used for "total" sort and for tracking cells that were seen)
+  const colKeySums = new Map<string, number>();
+  const rowKeySums = new Map<string, number>();
+  // Track every (rowKey, colKey) pair that appears in the data, even when null,
+  // so we can tell "queried and null" apart from "no data at all".
+  const seenCells = new Set<string>();
+
   // IF static list toggle is set, use input list
   if (options.inputList) {
     const staticRows = options.staticRows.split(',');
@@ -115,10 +185,28 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
 
       colKeySet.add(colKey);
       rowKeySet.add(rowKey);
+      seenCells.add(`${rowKey}||${colKey}`);
+
+      const v = row[valKey];
+      if (typeof v === 'number' && !isNaN(v)) {
+        colKeySums.set(colKey, (colKeySums.get(colKey) || 0) + v);
+        rowKeySums.set(rowKey, (rowKeySums.get(rowKey) || 0) + v);
+      }
     });
 
-    compositeColKeys = Array.from(colKeySet).sort();
-    compositeRowKeys = Array.from(rowKeySet).sort();
+    // Sort keys by name (default) or by marginal total (largest first)
+    const byName = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+    const byTotal = (sums: Map<string, number>) => (a: string, b: string) => {
+      const diff = (sums.get(b) || 0) - (sums.get(a) || 0);
+      return diff !== 0 ? diff : byName(a, b);
+    };
+
+    compositeColKeys = Array.from(colKeySet).sort(
+      options.colSort === 'total' ? byTotal(colKeySums) : byName
+    );
+    compositeRowKeys = Array.from(rowKeySet).sort(
+      options.rowSort === 'total' ? byTotal(rowKeySums) : byName
+    );
   }
 
   // Extract display names from composite keys
@@ -247,7 +335,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
 
   const numSquaresInMatrix = rowNames.length * colNames.length;
   if (numSquaresInMatrix > 50000) {
-    return { rows: null, columns: null, colMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: 'too many inputs', legend: null };
+    return { rows: null, columns: null, colMetadata: [], colCategories: [], rowMetadata: [], rowCategories: [], data: 'too many inputs', legend: null, rowTotals: [], colTotals: [], valueDomain: null };
   }
 
   // Phase 1: Collect all values per cell using composite keys
@@ -265,8 +353,9 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     const r = compositeRowKeys.indexOf(rowKey);
     const c = compositeColKeys.indexOf(colKey);
     const v = row[valKey];
+    const isValid = v != null && !(typeof v === 'number' && isNaN(v));
 
-    if (r > -1 && c > -1 && v != null) {
+    if (r > -1 && c > -1 && isValid) {
       const cellKey = `${r}:${c}`;
       if (!cellValues.has(cellKey)) {
         cellValues.set(cellKey, []);
@@ -276,10 +365,15 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   });
 
   // Phase 2: Aggregate values and build data matrix
+  // Cells start as -1 (no data). Cells that appeared in the query but had only
+  // null values become explicit null cells so they can be styled distinctly.
   let dataMatrix: any[][] = [];
   for (let i = 0; i < rowNames.length; i++) {
     dataMatrix.push(new Array(colNames.length).fill(-1));
   }
+  // running totals aligned to the final row/column order
+  const rowTotals = new Array(rowNames.length).fill(0);
+  const colTotals = new Array(colNames.length).fill(0);
 
   const aggMethod = options.aggregationMethod || 'sum';
 
@@ -292,18 +386,40 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
       val: v,
       color: colorMap(v),
       display: valueField[0].display(v),
+      isNull: false,
     };
+    if (typeof v === 'number' && !isNaN(v)) {
+      rowTotals[r] += v;
+      colTotals[c] += v;
+    }
   });
+
+  // Mark null cells: seen in the query but no non-null value landed in the cell
+  if (!options.inputList) {
+    for (let r = 0; r < compositeRowKeys.length; r++) {
+      for (let c = 0; c < compositeColKeys.length; c++) {
+        if (dataMatrix[r][c] === -1 && seenCells.has(`${compositeRowKeys[r]}||${compositeColKeys[c]}`)) {
+          dataMatrix[r][c] = {
+            row: rowNames[r],
+            col: colNames[c],
+            val: null,
+            color: nullColor,
+            display: valueField[0].display(null),
+            isNull: true,
+          };
+        }
+      }
+    }
+  }
 
   // parse data for legend
   let legendData: any[] = [];
   if (options.showLegend) {
     let tempValues: any[] = [];
-    if (options.legendType === 'range') { 
-      // get min & max, steps
-      let allValues: number[] = Object.values(frame.fields[valKey].values);
-      let thisMin = Math.min(...allValues);
-      let thisMax = Math.max(...allValues);
+    if (options.legendType === 'range') {
+      // get min & max, steps (numeric values only)
+      let thisMin = domainMin;
+      let thisMax = domainMax;
       let step = (thisMax - thisMin) / 10;
       // push 10 steps to use for legend
       tempValues = [];
@@ -339,6 +455,9 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     rowCategories: rowCategories,
     data: dataMatrix,
     legend: legendData,
+    rowTotals: rowTotals,
+    colTotals: colTotals,
+    valueDomain: valueDomain,
   };
   return dataObject;
 }
