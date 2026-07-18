@@ -90,12 +90,64 @@ categories in the panel editor.
 | Cell Color Mode | Colors | `sequential` | `sequential` / `diverging` / `standard` |
 | Diverging Midpoint | Colors | `0` | Neutral value for diverging mode |
 | Distinguish No-Data Cells | Colors | `on` | Render no-data cells empty/outlined |
-| Row Order | Row/Column | `name` | `name` or `total` (largest first) |
-| Column Order | Row/Column | `name` | `name` or `total` (largest first) |
+| Row Order | Row/Column | `name` | `name`, `total` (largest first), or `cluster` (seriation) |
+| Column Order | Row/Column | `name` | `name`, `total` (largest first), or `cluster` (seriation) |
+| Color Scale Range | Colors | `auto` | `auto` (data min/max) or `manual` (fixed, comparable across panels) |
+| Color Scale Min / Max | Colors | `0` / `100` | Fixed color-domain bounds (manual mode) |
+| Focus Value Range | Display | `off` | Spotlight cells in a value range |
+| Focus Min / Max | Display | — | Bounds of the focused range |
+| Out-of-Focus Cells | Display | `dim` | `dim` or `hide` cells outside the range |
 | Sizing | Layout | `fit` | `fit` to panel or `fixed` px cell size |
 | Freeze Axis Labels | Layout | `on` | Pin labels while the grid scrolls |
+| Column Label Orientation | Layout | `auto` | `auto` / `rotated` / `horizontal` |
 | Show Marginal Totals | Layout | `off` | Row/column total bars on the edges |
 | Size Encodes Value | Layout | `off` | Scale cell area by value (dual encoding) |
+| Show as Table | Layout | `off` | Accessible HTML table view of the same data |
+
+---
+
+## Round 2 — clarity, analytical & accessibility
+
+A second wave focused on comprehension, analytical power, and accessibility.
+
+### Clarity
+- **Legend null / no-data key.** The legend now shows swatches labeled "null" and
+  "no data" whenever such cells are present, so viewers can read the gray/outlined
+  cells.
+- **Continuous gradient legend.** For sequential/diverging color modes the legend is
+  a smooth gradient bar with labeled min/max (and a labeled midpoint tick for
+  diverging), instead of discrete swatches. Standard-options mode keeps stepped
+  swatches (matching its thresholds).
+- **Guided empty states.** Instead of a bare "No Data", the panel now tells you what
+  to do — map Rows/Columns/Value fields, add a numeric column, reduce cell count,
+  etc. — depending on what's actually missing. Parse failures render a friendly
+  message instead of blanking the panel.
+
+### Analytical
+- **Cluster ordering (seriation).** A third Row/Column order mode reorders similar
+  rows and columns next to each other to reveal block structure, via dependency-free
+  spectral seriation (column-centered power iteration on the value matrix).
+  Deterministic across renders; applied within categories when grouping is on.
+- **Shared / manual color domain.** Pin the color scale's min and max so multiple
+  matrix panels are directly comparable and colors don't shift when a filter changes
+  the data.
+- **Value-threshold focus.** Spotlight cells whose value falls in a range; the rest
+  are dimmed or hidden. In-cell labels and hover restore respect the focus state.
+
+### Interaction & accessibility
+- **Keyboard navigation + focus parity.** Cells are focusable with a roving tabindex;
+  arrow keys move between cells, Enter/Space pins a row+column, Escape clears. Focus
+  shows the same tooltip and cross-highlight as hover.
+- **ARIA + table view.** The grid exposes `role="img"`/grid roles and per-cell
+  `aria-label`s, and **Show as Table** renders an accessible HTML `<table>` of the
+  same data as a screen-reader/text-friendly alternative.
+- **Interactive legend.** Hovering the gradient (or a swatch, or a null/no-data key)
+  highlights the matching cells and dims the rest.
+- **Click-to-pin.** Clicking a cell or an axis label pins that row/column highlight so
+  it persists while you scan; click again (or Escape) to release.
+- **Auto-horizontal labels.** Column labels render horizontally when they fit inside a
+  cell (few columns / wide cells) and rotate vertically otherwise; overridable via
+  Column Label Orientation.
 
 ---
 

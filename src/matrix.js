@@ -87,9 +87,191 @@ function createViz(
   const noDataStroke = theme.colors.border.weak;
   const bandFill = theme.colors.background.secondary;
 
+  // value-threshold focus
+  const focusEnabled = !!options.focusEnabled;
+  const focusMode = options.focusMode || 'dim';
+  const focusMin = typeof options.focusMin === 'number' ? options.focusMin : null;
+  const focusMax = typeof options.focusMax === 'number' ? options.focusMax : null;
+  function inFocus(d) {
+    if (!focusEnabled) {
+      return true;
+    }
+    if (d === -1 || d.isNull || typeof d.val !== 'number') {
+      return false;
+    }
+    if (focusMin !== null && d.val < focusMin) {
+      return false;
+    }
+    if (focusMax !== null && d.val > focusMax) {
+      return false;
+    }
+    return true;
+  }
+  function baseOpacity(d) {
+    return focusEnabled && !inFocus(d) && focusMode === 'dim' ? 0.15 : 1;
+  }
+  function isHidden(d) {
+    return focusEnabled && focusMode === 'hide' && !inFocus(d);
+  }
+
+  // ---- cross-highlight, pin, tooltip & keyboard infrastructure ----
+  // (function declarations are hoisted; they reference rectArea/xAxisGroup/etc.
+  // which are assigned later but only ever called at event time.)
+  let pinned = null; // { r, c } where either may be null for a row-only / column-only pin
+  const rcMap = new Map(); // 'r:c' -> rect node, built after cells render
+
+  function applyHighlight(r, c) {
+    rectArea.selectAll('rect.matrix-cell').style('opacity', function (cd) {
+      const rr = +this.getAttribute('data-r');
+      const cc = +this.getAttribute('data-c');
+      const on = (r !== null && rr === r) || (c !== null && cc === c);
+      return on ? baseOpacity(cd) : 0.2;
+    });
+    svg.selectAll('.cell-value').style('opacity', function () {
+      const rr = +this.getAttribute('data-r');
+      const cc = +this.getAttribute('data-c');
+      return (r !== null && rr === r) || (c !== null && cc === c) ? 1 : 0.12;
+    });
+    xAxisGroup.selectAll('text').attr('font-weight', function () {
+      return c !== null && +this.getAttribute('data-c') === c ? 'bold' : null;
+    });
+    yAxisGroup.selectAll('text').attr('font-weight', function () {
+      return r !== null && +this.getAttribute('data-r') === r ? 'bold' : null;
+    });
+  }
+  function clearHighlight() {
+    if (pinned) {
+      applyHighlight(pinned.r, pinned.c);
+      return;
+    }
+    rectArea.selectAll('rect.matrix-cell').style('opacity', function (cd) {
+      return baseOpacity(cd);
+    });
+    svg.selectAll('.cell-value').style('opacity', 1);
+    xAxisGroup.selectAll('text').attr('font-weight', null);
+    yAxisGroup.selectAll('text').attr('font-weight', null);
+  }
+  function togglePin(r, c) {
+    if (pinned && pinned.r === r && pinned.c === c) {
+      pinned = null;
+      clearHighlight();
+    } else {
+      pinned = { r, c };
+      applyHighlight(r, c);
+    }
+  }
+  // highlight cells whose value is within `band` of `target` (interactive legend)
+  function highlightByValue(target, band) {
+    rectArea.selectAll('rect.matrix-cell').style('opacity', function (cd) {
+      const on = cd !== -1 && !cd.isNull && typeof cd.val === 'number' && Math.abs(cd.val - target) <= band;
+      return on ? 1 : 0.15;
+    });
+  }
+  // highlight only null cells (wantNull=true) or only no-data cells (wantNull=false)
+  function highlightByState(wantNull) {
+    rectArea.selectAll('rect.matrix-cell').style('opacity', function (cd) {
+      const on = wantNull ? cd !== -1 && cd.isNull : cd === -1;
+      return on ? 1 : 0.15;
+    });
+  }
+
+  function cellTooltipHtml(d) {
+    const thisRow = sanitizeHtml(d.row);
+    const thisColumn = sanitizeHtml(d.col);
+    const thisText = sanitizeHtml(d.isNull ? 'null' : d.display.text);
+    const thisSuffix = sanitizeHtml(d.isNull ? '' : d.display.suffix);
+    return `<div class="${styles.tooltipValue}">${thisText} ${thisSuffix ? thisSuffix : ''}</div>
+<div class="${styles.tooltipTable}">
+  <div class="${styles.tooltipTableCell}"><div class="${styles.tooltipTableRowLabel}">${srcText}</div></div>
+  <div class="${styles.tooltipTableCell}"><div class="${styles.tooltipTableRowValue}">${thisRow}</div></div>
+  <div class="${styles.tooltipTableCell}"><div class="${styles.tooltipTableRowLabel}">${targetText}</div></div>
+  <div class="${styles.tooltipTableCell}"><div class="${styles.tooltipTableRowValue}">${thisColumn}</div></div>
+  <div class="${styles.tooltipTableCell}"><div class="${styles.tooltipTableRowLabel}">${valText}</div></div>
+  <div class="${styles.tooltipTableCell}"><div class="${styles.tooltipTableRowValue}">${thisText} ${thisSuffix ? thisSuffix : ''}</div></div>
+</div>`;
+  }
+  // shared activation used by both hover and keyboard focus
+  function activateCell(node, d) {
+    if (d === -1) {
+      return;
+    }
+    d3.select(node).raise().attr('stroke', theme.colors.text.primary).attr('stroke-width', 2);
+    if (highlightRowCol) {
+      applyHighlight(+node.getAttribute('data-r'), +node.getAttribute('data-c'));
+    }
+    tooltip
+      .html(() => cellTooltipHtml(d))
+      .transition()
+      .duration(150)
+      .style('opacity', 1);
+  }
+  function deactivateCell(node, d) {
+    d3.select(node).attr('stroke', cellStroke(d)).attr('stroke-width', cellStrokeWidth(d));
+    if (highlightRowCol) {
+      clearHighlight();
+    }
+    tooltip.transition().delay(100).duration(150).style('opacity', 0);
+  }
+  function positionTooltipAtCell(node) {
+    try {
+      const cr = node.getBoundingClientRect();
+      const er = elem.getBoundingClientRect();
+      const sx = elem.parentElement ? elem.parentElement.scrollLeft : 0;
+      const sy = elem.parentElement ? elem.parentElement.scrollTop : 0;
+      moveTooltip(
+        { offsetX: cr.left - er.left + sx + cr.width / 2, offsetY: cr.top - er.top + sy + cr.height / 2 },
+        elem,
+        tooltip
+      );
+    } catch (e) {
+      /* no-op */
+    }
+  }
+  function cellNodeAt(r, c) {
+    return rcMap.get(r + ':' + c) || null;
+  }
+  function handleCellKeydown(event, node) {
+    let r = +node.getAttribute('data-r');
+    let c = +node.getAttribute('data-c');
+    const key = event.key;
+    let moved = true;
+    if (key === 'ArrowRight') {
+      c++;
+    } else if (key === 'ArrowLeft') {
+      c--;
+    } else if (key === 'ArrowDown') {
+      r++;
+    } else if (key === 'ArrowUp') {
+      r--;
+    } else if (key === 'Enter' || key === ' ') {
+      if (!linkURL) {
+        togglePin(r, c);
+      }
+      moved = false;
+    } else if (key === 'Escape') {
+      pinned = null;
+      clearHighlight();
+      moved = false;
+    } else {
+      return;
+    }
+    event.preventDefault();
+    if (!moved) {
+      return;
+    }
+    const target = cellNodeAt(r, c);
+    if (target && target !== node) {
+      node.setAttribute('tabindex', '-1');
+      target.setAttribute('tabindex', '0');
+      target.focus();
+    }
+  }
+
   // do a bit of work to setup the visual layout of the wiget --------
-  if (elem === null) {
-    console.error('bailing after failing to find parent element');
+  // Bail if the element isn't mounted (e.g. the panel is showing an empty/table
+  // state) or the data isn't a real matrix. The render hook is always called for
+  // stable React hook order, so createViz may run before there's anything to draw.
+  if (!elem || !Array.isArray(rowNames) || !Array.isArray(colNames) || !Array.isArray(matrix) || rowNames.length === 0 || colNames.length === 0) {
     return;
   }
 
@@ -119,8 +301,17 @@ function createViz(
   // fall back to a character-count estimate (8px/char/em) if measurement is unavailable
   const colFallback = maxColTxtLength * txtSize * 8;
   const rowFallback = maxRowTxtLength * txtSize * 8;
-  var colTxtOffset = (measuredColW > 0 ? measuredColW : colFallback) + labelPad;
-  var rowTxtOffset = (measuredRowW > 0 ? measuredRowW : rowFallback) + labelPad;
+  const effColW = measuredColW > 0 ? measuredColW : colFallback;
+  const effRowW = measuredRowW > 0 ? measuredRowW : rowFallback;
+  // Column label orientation: horizontal (short labels) vs rotated -90 (long labels).
+  // The auto decision needs the final cell width, so it is finalized after cellSize
+  // is computed below; here we assume rotated (the larger top margin) so fit-sizing
+  // stays conservative.
+  const labelOrientation = options.labelOrientation || 'auto';
+  const colLineHeight = Math.ceil(txtSize * 18) + 12;
+  let colHorizontal = labelOrientation === 'horizontal';
+  var colTxtOffset = (colHorizontal ? colLineHeight : effColW) + labelPad;
+  var rowTxtOffset = effRowW + labelPad;
 
   // Category header configuration
   const colGrouping = options.enableColGrouping && colCategories && colCategories.length > 0;
@@ -166,6 +357,15 @@ function createViz(
     }
     cellSize = fit;
   }
+
+  // Finalize column-label orientation now that the real cell width is known.
+  // Auto: horizontal when the longest label fits inside a cell; otherwise rotate.
+  if (labelOrientation === 'auto') {
+    colHorizontal = effColW <= cellSize - 4;
+  } else {
+    colHorizontal = labelOrientation === 'horizontal';
+  }
+  colTxtOffset = (colHorizontal ? colLineHeight : effColW) + labelPad;
 
   const bandwidth = cellSize * (1 - cellPadding);
   // per-cell offset so the padded cell is centered in its slot
@@ -310,20 +510,37 @@ function createViz(
     }
   }
 
-  // ---- X axis labels ----
+  // ---- X axis labels (rotated -90 by default; horizontal when they fit) ----
   var xAxisGroup = svg.append('g').attr('class', 'x-axis');
   columnPositions.forEach((pos, idx) => {
-    const label = xAxisGroup
-      .append('text')
-      .attr('data-c', idx)
-      .attr('transform', `translate(${pos.x + cellSize / 2},-12)rotate(-90)`)
-      .attr('text-anchor', 'start')
-      .attr('font-size', txtSize + 'em')
-      .style('font-family', theme.typography.fontFamily)
-      .attr('fill', theme.colors.text.primary)
-      .text(pos.name);
-
-    label.call(truncateToPixels, colTxtOffset - 16);
+    let label;
+    if (colHorizontal) {
+      label = xAxisGroup
+        .append('text')
+        .attr('data-c', idx)
+        .attr('x', pos.x + cellSize / 2)
+        .attr('y', -8)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', txtSize + 'em')
+        .style('font-family', theme.typography.fontFamily)
+        .attr('fill', theme.colors.text.primary)
+        .text(pos.name);
+      label.call(truncateToPixels, cellSize - 2);
+    } else {
+      label = xAxisGroup
+        .append('text')
+        .attr('data-c', idx)
+        .attr('transform', `translate(${pos.x + cellSize / 2},-12)rotate(-90)`)
+        .attr('text-anchor', 'start')
+        .attr('font-size', txtSize + 'em')
+        .style('font-family', theme.typography.fontFamily)
+        .attr('fill', theme.colors.text.primary)
+        .text(pos.name);
+      label.call(truncateToPixels, colTxtOffset - 16);
+    }
+    if (highlightRowCol) {
+      label.style('cursor', 'pointer');
+    }
     label
       .on('mouseover', function () {
         tooltip.html(sanitizeHtml(pos.name)).transition().duration(150).style('opacity', 1);
@@ -333,6 +550,11 @@ function createViz(
       })
       .on('mouseout', function () {
         tooltip.transition().delay(100).duration(150).style('opacity', 0);
+      })
+      .on('click', function () {
+        if (highlightRowCol) {
+          togglePin(null, idx);
+        }
       });
   });
 
@@ -352,6 +574,9 @@ function createViz(
       .text(pos.name);
 
     label.call(truncateToPixels, rowTxtOffset - 16);
+    if (highlightRowCol) {
+      label.style('cursor', 'pointer');
+    }
     label
       .on('mouseover', function () {
         tooltip.html(sanitizeHtml(pos.name)).transition().duration(150).style('opacity', 1);
@@ -361,6 +586,11 @@ function createViz(
       })
       .on('mouseout', function () {
         tooltip.transition().delay(100).duration(150).style('opacity', 0);
+      })
+      .on('click', function () {
+        if (highlightRowCol) {
+          togglePin(idx, null);
+        }
       });
   });
 
@@ -519,75 +749,68 @@ function createViz(
     .attr('fill', cellFill)
     .attr('stroke', cellStroke)
     .attr('stroke-width', cellStrokeWidth)
+    .style('opacity', baseOpacity)
+    .style('display', function (d) {
+      return isHidden(d) ? 'none' : null;
+    })
+    .attr('role', 'gridcell')
+    .attr('tabindex', -1)
     .on('mouseover', function (event, d) {
-      if (d !== -1) {
-        // lift the hovered cell with an outline (no layout-shifting grow)
-        d3.select(this).raise().attr('stroke', theme.colors.text.primary).attr('stroke-width', 2);
-
-        if (highlightRowCol) {
-          const r = +this.getAttribute('data-r');
-          const c = +this.getAttribute('data-c');
-          rectArea.selectAll('rect.matrix-cell').style('opacity', function () {
-            const rr = +this.getAttribute('data-r');
-            const cc = +this.getAttribute('data-c');
-            return rr === r || cc === c ? 1 : 0.25;
-          });
-          svg.selectAll('.cell-value').style('opacity', function () {
-            const rr = +this.getAttribute('data-r');
-            const cc = +this.getAttribute('data-c');
-            return rr === r || cc === c ? 1 : 0.15;
-          });
-          xAxisGroup.selectAll('text').attr('font-weight', function () {
-            return +this.getAttribute('data-c') === c ? 'bold' : null;
-          });
-          yAxisGroup.selectAll('text').attr('font-weight', function () {
-            return +this.getAttribute('data-r') === r ? 'bold' : null;
-          });
-        }
-
-        tooltip
-          .html(() => {
-            var thisRow = sanitizeHtml(d.row);
-            var thisColumn = sanitizeHtml(d.col);
-            var thisText = sanitizeHtml(d.isNull ? 'null' : d.display.text);
-            var thisSuffix = sanitizeHtml(d.isNull ? '' : d.display.suffix);
-            var text = `<div class="${styles.tooltipValue}">${thisText} ${thisSuffix ? thisSuffix : ''}</div>
-<div class="${styles.tooltipTable}">
-  <div class="${styles.tooltipTableCell}"><div class="${styles.tooltipTableRowLabel}">${srcText}</div></div>
-  <div class="${styles.tooltipTableCell}"><div class="${styles.tooltipTableRowValue}">${thisRow}</div></div>
-  <div class="${styles.tooltipTableCell}"><div class="${styles.tooltipTableRowLabel}">${targetText}</div></div>
-  <div class="${styles.tooltipTableCell}"><div class="${styles.tooltipTableRowValue}">${thisColumn}</div></div>
-  <div class="${styles.tooltipTableCell}"><div class="${styles.tooltipTableRowLabel}">${valText}</div></div>
-  <div class="${styles.tooltipTableCell}"><div class="${styles.tooltipTableRowValue}">${thisText} ${thisSuffix ? thisSuffix : ''}</div></div>
-</div>`;
-            return text;
-          })
-          .transition()
-          .duration(150)
-          .style('opacity', 1);
-      }
+      activateCell(this, d);
     })
     .on('mousemove', function (event) {
       moveTooltip(event, elem, tooltip);
     })
     .on('mouseout', function (event, d) {
-      // restore this cell's base appearance
-      d3.select(this).attr('stroke', cellStroke(d)).attr('stroke-width', cellStrokeWidth(d));
-
-      if (highlightRowCol) {
-        rectArea.selectAll('rect.matrix-cell').style('opacity', 1);
-        svg.selectAll('.cell-value').style('opacity', 1);
-        xAxisGroup.selectAll('text').attr('font-weight', null);
-        yAxisGroup.selectAll('text').attr('font-weight', null);
-      }
-
-      tooltip.transition().delay(100).duration(150).style('opacity', 0);
+      deactivateCell(this, d);
     })
-    .on('click', function () {
+    .on('focus', function (event, d) {
+      activateCell(this, d);
+      positionTooltipAtCell(this);
+    })
+    .on('blur', function (event, d) {
+      deactivateCell(this, d);
+    })
+    .on('keydown', function (event) {
+      handleCellKeydown(event, this);
+    })
+    .on('click', function (event, d) {
       if (linkURL) {
         tooltip.remove();
+      } else if (d !== -1 && highlightRowCol) {
+        togglePin(+this.getAttribute('data-r'), +this.getAttribute('data-c'));
       }
     });
+
+  // ---- accessibility: build the r:c lookup, per-cell aria-labels, roving tabindex ----
+  rectArea.selectAll('rect.matrix-cell').each(function () {
+    const rr = this.getAttribute('data-r');
+    const cc = this.getAttribute('data-c');
+    rcMap.set(rr + ':' + cc, this);
+    const rowName = rowNames[+rr];
+    const colName = colNames[+cc];
+    const d = matrix[+rr][+cc];
+    let valStr;
+    if (d === -1) {
+      valStr = 'no data';
+    } else if (d.isNull) {
+      valStr = 'null';
+    } else {
+      valStr = `${d.display.text}${d.display.suffix ? ' ' + d.display.suffix : ''}`;
+    }
+    this.setAttribute('aria-label', `${srcText} ${rowName}, ${targetText} ${colName}, ${valText} ${valStr}`);
+  });
+  // make the first visible cell keyboard-reachable (roving tabindex entry point)
+  const firstCell = rcMap.get('0:0') || rectArea.select('rect.matrix-cell').node();
+  if (firstCell) {
+    firstCell.setAttribute('tabindex', '0');
+  }
+  // label the grid for screen readers
+  d3.select('#' + svgClass)
+    .attr('role', 'img')
+    .attr('aria-label', `Matrix of ${rowNames.length} rows by ${colNames.length} columns`);
+  rectArea.attr('role', 'grid');
+  rows.attr('role', 'row');
 
   // ---- In-cell value labels (only when they fit) ----
   if (showCellValues) {
@@ -598,6 +821,10 @@ function createViz(
         for (let c = 0; c < matrix[r].length; c++) {
           const d = matrix[r][c];
           if (d === -1 || d.isNull || d.val == null) {
+            continue;
+          }
+          // declutter: no label on cells outside the focused range
+          if (focusEnabled && !inFocus(d)) {
             continue;
           }
           const text = d.display && d.display.text != null ? String(d.display.text) : String(d.val);
@@ -691,18 +918,79 @@ function createViz(
   if (options.showLegend) {
     var legendClass = `legend-${id}`;
 
-    var div = d3.select(elem).append('div').attr('class', `matrix-legend-${id}`).append('svg').attr('id', legendClass);
+    // Detect which special-cell states are present so we can key them below.
+    let hasNull = false;
+    let hasNoData = false;
+    for (let r = 0; r < matrix.length && !(hasNull && hasNoData); r++) {
+      for (let c = 0; c < matrix[r].length; c++) {
+        const cd = matrix[r][c];
+        if (cd === -1) {
+          hasNoData = true;
+        } else if (cd.isNull) {
+          hasNull = true;
+        }
+      }
+    }
 
-    ////////////// range - bar //////////////////////
+    // Append a "null" / "no data" key under the color scale, starting at yStart.
+    // Returns the y after the last key row.
+    function appendStateKeys(lsvgSel, xStart, yStart) {
+      let ky = yStart;
+      const rowStep = 18;
+      const swatch = 12;
+      const addRow = (fill, stroke, label, wantNull) => {
+        const krect = lsvgSel
+          .append('rect')
+          .attr('x', xStart)
+          .attr('y', ky)
+          .attr('width', swatch)
+          .attr('height', swatch)
+          .attr('rx', Math.min(cornerRadius, 3))
+          .attr('fill', fill)
+          .attr('stroke', stroke)
+          .attr('stroke-width', stroke === 'none' ? 0 : 1)
+          .style('cursor', 'pointer')
+          .on('mouseover', function () {
+            highlightByState(wantNull);
+          })
+          .on('mouseout', function () {
+            clearHighlight();
+          });
+        lsvgSel
+          .append('text')
+          .attr('x', xStart + swatch + 6)
+          .attr('y', ky + swatch - 2)
+          .attr('font-size', '11px')
+          .style('font-family', theme.typography.fontFamily)
+          .attr('fill', theme.colors.text.secondary)
+          .text(label);
+        void krect;
+        ky += rowStep;
+      };
+      if (hasNull) {
+        addRow(nullColor, 'none', 'null', true);
+      }
+      if (hasNoData) {
+        addRow(distinctNoData ? 'none' : defaultColor, distinctNoData ? noDataStroke : 'none', 'no data', false);
+      }
+      return ky;
+    }
+
+    // value tolerance band for interactive legend highlighting
+    const legendBand = valueDomain ? (valueDomain.max - valueDomain.min) * 0.06 || 1 : 1;
+
+    var div = d3.select(elem).append('div').attr('class', `matrix-legend-${id}`).append('svg').attr('id', legendClass);
+    const colorMode = options.colorMode || 'sequential';
+    const useGradient = colorMode === 'sequential' || colorMode === 'diverging';
+
+    ////////////// range - continuous or discrete //////////////////////
     if (options.legendType == 'range') {
       var lsvg = d3.select(`#${legendClass}`);
-      const swatchW = 14;
       const barX = 4;
-      const barY = 18;
+      const barY = 20;
+      const barH = 12;
       const nSteps = legend.length;
-      const totalBarW = nSteps * swatchW;
-
-      lsvg.attr('width', Math.max(totalBarW + 40, 160)).attr('height', barY + 44);
+      const barW = useGradient ? 200 : Math.max(nSteps * 14, 160);
 
       // title
       lsvg
@@ -714,51 +1002,147 @@ function createViz(
         .style('font-family', theme.typography.fontFamily)
         .text(valText);
 
-      // color bar
-      lsvg
-        .append('g')
-        .selectAll('legendBars')
-        .data(legend)
-        .enter()
-        .append('rect')
-        .attr('class', `legend-bar-${id}`)
-        .attr('width', swatchW)
-        .attr('height', 12)
-        .attr('fill', function (d) {
-          return d.color;
-        })
-        .attr('x', function (d, i) {
-          return barX + i * swatchW;
-        })
-        .attr('y', barY);
+      if (useGradient) {
+        // smooth gradient bar built from the sampled ramp colors
+        const gradId = `matrix-grad-${id}`;
+        const defs = lsvg.append('defs');
+        const grad = defs
+          .append('linearGradient')
+          .attr('id', gradId)
+          .attr('x1', '0%')
+          .attr('x2', '100%')
+          .attr('y1', '0%')
+          .attr('y2', '0%');
+        legend.forEach((d, i) => {
+          grad
+            .append('stop')
+            .attr('offset', `${(i / (nSteps - 1)) * 100}%`)
+            .attr('stop-color', d.color);
+        });
+        lsvg
+          .append('rect')
+          .attr('x', barX)
+          .attr('y', barY)
+          .attr('width', barW)
+          .attr('height', barH)
+          .attr('rx', 2)
+          .attr('fill', `url(#${gradId})`)
+          .attr('stroke', theme.colors.border.weak)
+          .attr('stroke-width', 1)
+          .style('cursor', valueDomain ? 'crosshair' : null)
+          .on('mousemove', function (event) {
+            if (!valueDomain) {
+              return;
+            }
+            const mx = Math.max(0, Math.min(barW, event.offsetX - barX));
+            const target = valueDomain.min + (mx / barW) * (valueDomain.max - valueDomain.min);
+            highlightByValue(target, legendBand);
+          })
+          .on('mouseout', function () {
+            clearHighlight();
+          });
 
-      // tick labels: first, middle, last
-      const tickIdx = [0, Math.floor((nSteps - 1) / 2), nSteps - 1].filter((v, i, arr) => arr.indexOf(v) === i);
-      lsvg
-        .append('g')
-        .selectAll('legendLabels')
-        .data(tickIdx)
-        .enter()
-        .append('text')
-        .attr('x', function (i) {
-          return barX + i * swatchW + swatchW / 2;
-        })
-        .attr('y', barY + 26)
-        .attr('text-anchor', function (i) {
-          return i === 0 ? 'start' : i === nSteps - 1 ? 'end' : 'middle';
-        })
-        .attr('font-size', '11px')
-        .style('font-family', theme.typography.fontFamily)
-        .text(function (i) {
-          return legend[i].label;
-        })
-        .attr('fill', theme.colors.text.primary);
+        // min / max labels
+        lsvg
+          .append('text')
+          .attr('x', barX)
+          .attr('y', barY + barH + 14)
+          .attr('text-anchor', 'start')
+          .attr('font-size', '11px')
+          .style('font-family', theme.typography.fontFamily)
+          .attr('fill', theme.colors.text.primary)
+          .text(legend[0].label);
+        lsvg
+          .append('text')
+          .attr('x', barX + barW)
+          .attr('y', barY + barH + 14)
+          .attr('text-anchor', 'end')
+          .attr('font-size', '11px')
+          .style('font-family', theme.typography.fontFamily)
+          .attr('fill', theme.colors.text.primary)
+          .text(legend[nSteps - 1].label);
+
+        // diverging midpoint tick
+        if (colorMode === 'diverging' && valueDomain && valueDomain.max !== valueDomain.min) {
+          const mid = typeof options.divergingMidpoint === 'number' ? options.divergingMidpoint : 0;
+          const frac = (mid - valueDomain.min) / (valueDomain.max - valueDomain.min);
+          if (frac > 0.02 && frac < 0.98) {
+            const tx = barX + frac * barW;
+            lsvg
+              .append('line')
+              .attr('x1', tx)
+              .attr('x2', tx)
+              .attr('y1', barY - 2)
+              .attr('y2', barY + barH + 2)
+              .attr('stroke', theme.colors.text.primary)
+              .attr('stroke-width', 1);
+            lsvg
+              .append('text')
+              .attr('x', tx)
+              .attr('y', barY + barH + 14)
+              .attr('text-anchor', 'middle')
+              .attr('font-size', '11px')
+              .style('font-family', theme.typography.fontFamily)
+              .attr('fill', theme.colors.text.primary)
+              .text(String(mid));
+          }
+        }
+      } else {
+        // discrete swatches (standard / thresholds mode)
+        const swatchW = barW / nSteps;
+        lsvg
+          .append('g')
+          .selectAll('legendBars')
+          .data(legend)
+          .enter()
+          .append('rect')
+          .attr('class', `legend-bar-${id}`)
+          .attr('width', swatchW)
+          .attr('height', barH)
+          .attr('fill', function (d) {
+            return d.color;
+          })
+          .attr('x', function (d, i) {
+            return barX + i * swatchW;
+          })
+          .attr('y', barY)
+          .style('cursor', 'pointer')
+          .on('mouseover', function (event, d) {
+            if (d.value != null) {
+              highlightByValue(d.value, legendBand);
+            }
+          })
+          .on('mouseout', function () {
+            clearHighlight();
+          });
+        const tickIdx = [0, Math.floor((nSteps - 1) / 2), nSteps - 1].filter((v, i, arr) => arr.indexOf(v) === i);
+        lsvg
+          .append('g')
+          .selectAll('legendLabels')
+          .data(tickIdx)
+          .enter()
+          .append('text')
+          .attr('x', function (i) {
+            return barX + i * swatchW + swatchW / 2;
+          })
+          .attr('y', barY + barH + 14)
+          .attr('text-anchor', function (i) {
+            return i === 0 ? 'start' : i === nSteps - 1 ? 'end' : 'middle';
+          })
+          .attr('font-size', '11px')
+          .style('font-family', theme.typography.fontFamily)
+          .text(function (i) {
+            return legend[i].label;
+          })
+          .attr('fill', theme.colors.text.primary);
+      }
+
+      const keyEndY = appendStateKeys(lsvg, barX, barY + barH + 24);
+      lsvg.attr('width', Math.max(barW + 40, 180)).attr('height', keyEndY + 4);
     } else {
       /////////// categorical - circles ////////////////////////////
       var lsvg2 = d3.select(`#${legendClass}`);
       lsvg2
-        .attr('width', 25 + (legend.length - 1) * 75 + 20 + legend[legend.length - 1].label.length * 9)
-        .attr('height', 50 + 16)
         .append('g')
         .selectAll('legendCircles')
         .data(legend)
@@ -772,7 +1156,16 @@ function createViz(
         .attr('cx', function (d, i) {
           return 25 + i * 75;
         })
-        .attr('cy', 20);
+        .attr('cy', 20)
+        .style('cursor', 'pointer')
+        .on('mouseover', function (event, d) {
+          if (d.value != null) {
+            highlightByValue(d.value, legendBand);
+          }
+        })
+        .on('mouseout', function () {
+          clearHighlight();
+        });
       lsvg2
         .append('g')
         .selectAll('legendLabels')
@@ -788,6 +1181,9 @@ function createViz(
         })
         .style('font-family', theme.typography.fontFamily)
         .attr('fill', theme.colors.text.primary);
+      const catW = 25 + (legend.length - 1) * 75 + 20 + legend[legend.length - 1].label.length * 9;
+      const keyEndY = appendStateKeys(lsvg2, 15, 60);
+      lsvg2.attr('width', catW).attr('height', Math.max(66, keyEndY + 4));
     }
   }
 }

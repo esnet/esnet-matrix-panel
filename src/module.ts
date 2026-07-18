@@ -144,7 +144,8 @@ plugin.setPanelOptions((builder) => {
   builder.addSelect({
     path: 'rowSort',
     name: 'Row Order',
-    description: 'How to order the rows. "Total" sorts by each row\'s summed value (largest first) to surface hot rows.',
+    description:
+      'How to order the rows. Total sorts by each row\'s summed value (largest first). Cluster reorders similar rows next to each other to reveal block structure.',
     category: RowOptions,
     defaultValue: 'name',
     settings: {
@@ -152,13 +153,15 @@ plugin.setPanelOptions((builder) => {
       options: [
         { value: 'name', label: 'By name (A→Z)' },
         { value: 'total', label: 'By total (largest first)' },
+        { value: 'cluster', label: 'By cluster (seriation)' },
       ],
     },
   });
   builder.addSelect({
     path: 'colSort',
     name: 'Column Order',
-    description: 'How to order the columns. "Total" sorts by each column\'s summed value (largest first).',
+    description:
+      'How to order the columns. Total sorts by each column\'s summed value (largest first). Cluster reorders similar columns next to each other.',
     category: RowOptions,
     defaultValue: 'name',
     settings: {
@@ -166,6 +169,7 @@ plugin.setPanelOptions((builder) => {
       options: [
         { value: 'name', label: 'By name (A→Z)' },
         { value: 'total', label: 'By total (largest first)' },
+        { value: 'cluster', label: 'By cluster (seriation)' },
       ],
     },
   });
@@ -421,6 +425,43 @@ plugin.setPanelOptions((builder) => {
     defaultValue: true,
   });
 
+  builder.addBooleanSwitch({
+    path: 'focusEnabled',
+    name: 'Focus Value Range',
+    description: 'Spotlight cells whose value falls within a range; others are dimmed or hidden.',
+    category: OptionsCategory,
+    defaultValue: false,
+  });
+  builder.addNumberInput({
+    path: 'focusMin',
+    name: 'Focus Min',
+    description: 'Lower bound of the focused value range (leave blank for no lower bound).',
+    category: OptionsCategory,
+    showIf: (config: MatrixOptions) => config.focusEnabled,
+  });
+  builder.addNumberInput({
+    path: 'focusMax',
+    name: 'Focus Max',
+    description: 'Upper bound of the focused value range (leave blank for no upper bound).',
+    category: OptionsCategory,
+    showIf: (config: MatrixOptions) => config.focusEnabled,
+  });
+  builder.addSelect({
+    path: 'focusMode',
+    name: 'Out-of-Focus Cells',
+    description: 'How to treat cells outside the focused range.',
+    category: OptionsCategory,
+    showIf: (config: MatrixOptions) => config.focusEnabled,
+    defaultValue: 'dim',
+    settings: {
+      allowCustomValue: false,
+      options: [
+        { value: 'dim', label: 'Dim' },
+        { value: 'hide', label: 'Hide' },
+      ],
+    },
+  });
+
   builder.addNumberInput({
     path: 'txtLength',
     name: 'Text Length',
@@ -472,6 +513,38 @@ plugin.setPanelOptions((builder) => {
     showIf: (config: MatrixOptions) => config.colorMode === 'diverging',
     defaultValue: 0,
   });
+  builder.addSelect({
+    path: 'colorDomainMode',
+    name: 'Color Scale Range',
+    description:
+      'Auto scales colors to this panel\'s min/max. Manual lets you pin the range so multiple matrix panels share one comparable scale.',
+    category: ColorCategory,
+    showIf: (config: MatrixOptions) => config.colorMode !== 'standard',
+    defaultValue: 'auto',
+    settings: {
+      allowCustomValue: false,
+      options: [
+        { value: 'auto', label: 'Auto (data min/max)' },
+        { value: 'manual', label: 'Manual (fixed range)' },
+      ],
+    },
+  });
+  builder.addNumberInput({
+    path: 'colorDomainMin',
+    name: 'Color Scale Min',
+    description: 'Value mapped to the low end of the color scale.',
+    category: ColorCategory,
+    showIf: (config: MatrixOptions) => config.colorMode !== 'standard' && config.colorDomainMode === 'manual',
+    defaultValue: 0,
+  });
+  builder.addNumberInput({
+    path: 'colorDomainMax',
+    name: 'Color Scale Max',
+    description: 'Value mapped to the high end of the color scale.',
+    category: ColorCategory,
+    showIf: (config: MatrixOptions) => config.colorMode !== 'standard' && config.colorDomainMode === 'manual',
+    defaultValue: 100,
+  });
   builder.addBooleanSwitch({
     path: 'distinctNoData',
     name: 'Distinguish No-Data Cells',
@@ -515,6 +588,28 @@ plugin.setPanelOptions((builder) => {
     description: 'Keeps the row and column labels pinned while the cell grid scrolls.',
     category: LayoutCategory,
     defaultValue: true,
+  });
+  builder.addSelect({
+    path: 'labelOrientation',
+    name: 'Column Label Orientation',
+    description: 'Auto shows horizontal labels when they fit in a cell, otherwise rotates them vertically.',
+    category: LayoutCategory,
+    defaultValue: 'auto',
+    settings: {
+      allowCustomValue: false,
+      options: [
+        { value: 'auto', label: 'Auto' },
+        { value: 'rotated', label: 'Rotated (vertical)' },
+        { value: 'horizontal', label: 'Horizontal' },
+      ],
+    },
+  });
+  builder.addBooleanSwitch({
+    path: 'showTableView',
+    name: 'Show as Table',
+    description: 'Renders an accessible HTML table instead of the matrix — a text/screen-reader-friendly view of the same data.',
+    category: LayoutCategory,
+    defaultValue: false,
   });
   builder.addBooleanSwitch({
     path: 'showMarginalTotals',

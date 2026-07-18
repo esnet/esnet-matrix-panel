@@ -22,9 +22,18 @@ export interface MatrixOptions {
   // Color presets (Phase 2)
   colorMode: string; // 'standard' | 'sequential' | 'diverging'
   divergingMidpoint: number;
-  // Sorting / seriation (Phase 2)
-  rowSort: string; // 'name' | 'total'
-  colSort: string; // 'name' | 'total'
+  // Shared / explicit color domain (Round 2)
+  colorDomainMode: string; // 'auto' | 'manual'
+  colorDomainMin: number;
+  colorDomainMax: number;
+  // Value-threshold focus (Round 2)
+  focusEnabled: boolean;
+  focusMin: number;
+  focusMax: number;
+  focusMode: string; // 'dim' | 'hide'
+  // Sorting / seriation (Phase 2 + Round 2)
+  rowSort: string; // 'name' | 'total' | 'cluster'
+  colSort: string; // 'name' | 'total' | 'cluster'
   // Grouping visuals (Phase 2)
   showGroupDividers: boolean;
   // In-cell value labels (Phase 2)
@@ -34,6 +43,9 @@ export interface MatrixOptions {
   freezeLabels: boolean;
   showMarginalTotals: boolean;
   sizeEncodesValue: boolean;
+  // Interaction & accessibility (Round 2)
+  labelOrientation: string; // 'auto' | 'rotated' | 'horizontal'
+  showTableView: boolean;
   sourceText: string;
   targetText: string;
   valueText: string;

@@ -43,6 +43,109 @@ function makeRamp(stops: string[]): (t: number) => string {
 // Sequential single-hue blue ramp, light -> dark (dataviz reference palette)
 const SEQ_STOPS = ['#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95', '#0d366b'];
 
+/**
+ * Spectral seriation: order rows and columns so similar ones sit next to each other,
+ * revealing block structure. Builds the value matrix, column-centers it, then finds
+ * the dominant right singular vector via power iteration (dependency-free). Rows are
+ * ordered by their projection onto that vector; columns by the vector itself.
+ * Returns null score maps when the matrix is too small or degenerate (caller falls
+ * back to name order). Deterministic (fixed seed) so re-renders don't reshuffle.
+ */
+function computeSeriation(
+  rowKeys: string[],
+  colKeys: string[],
+  cellRaw: Map<string, number>
+): { rowScores: Map<string, number> | null; colScores: Map<string, number> | null } {
+  const nR = rowKeys.length;
+  const nC = colKeys.length;
+  const none = { rowScores: null, colScores: null };
+  if (nR < 3 || nC < 3) {
+    return none;
+  }
+
+  // build value matrix M (nR x nC)
+  const M: number[][] = [];
+  for (let i = 0; i < nR; i++) {
+    const row = new Array(nC);
+    for (let j = 0; j < nC; j++) {
+      row[j] = cellRaw.get(`${rowKeys[i]}||${colKeys[j]}`) || 0;
+    }
+    M.push(row);
+  }
+  // column-center (PCA): removes the all-positive component so the ordering reflects
+  // covariance structure rather than raw totals
+  for (let j = 0; j < nC; j++) {
+    let s = 0;
+    for (let i = 0; i < nR; i++) {
+      s += M[i][j];
+    }
+    const mean = s / nR;
+    for (let i = 0; i < nR; i++) {
+      M[i][j] -= mean;
+    }
+  }
+
+  const normalize = (x: number[]): number[] | null => {
+    let n = 0;
+    for (const e of x) {
+      n += e * e;
+    }
+    n = Math.sqrt(n);
+    if (n < 1e-12) {
+      return null;
+    }
+    return x.map((e) => e / n);
+  };
+
+  // deterministic non-degenerate seed
+  let v: number[] | null = new Array(nC).fill(0).map((_, j) => Math.cos(j * 0.7) + 1.5);
+  v = normalize(v);
+  if (!v) {
+    return none;
+  }
+  // power iteration on M^T M without materializing it: v <- normalize(M^T (M v))
+  for (let iter = 0; iter < 60; iter++) {
+    const u = new Array(nR).fill(0);
+    for (let i = 0; i < nR; i++) {
+      let s = 0;
+      const Mi = M[i];
+      for (let j = 0; j < nC; j++) {
+        s += Mi[j] * v![j];
+      }
+      u[i] = s;
+    }
+    const w = new Array(nC).fill(0);
+    for (let i = 0; i < nR; i++) {
+      const Mi = M[i];
+      const ui = u[i];
+      for (let j = 0; j < nC; j++) {
+        w[j] += Mi[j] * ui;
+      }
+    }
+    const nv = normalize(w);
+    if (!nv) {
+      return none;
+    }
+    v = nv;
+  }
+
+  // final row scores = M v (projection onto the dominant direction)
+  const rowScores = new Map<string, number>();
+  for (let i = 0; i < nR; i++) {
+    let s = 0;
+    const Mi = M[i];
+    for (let j = 0; j < nC; j++) {
+      s += Mi[j] * v![j];
+    }
+    rowScores.set(rowKeys[i], s);
+  }
+  const colScores = new Map<string, number>();
+  for (let j = 0; j < nC; j++) {
+    colScores.set(colKeys[j], v![j]);
+  }
+  return { rowScores, colScores };
+}
+
 export function parseData(data: { series: any[] }, options: any, theme: any) {
   const series = data.series[0];
   if (series === null || series === undefined) {
@@ -82,9 +185,20 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   let allNumericValues: number[] = (Object.values(frame.fields[valKey].values) as any[]).filter(
     (v) => typeof v === 'number' && !isNaN(v)
   );
-  const domainMin = allNumericValues.length ? Math.min(...allNumericValues) : 0;
-  const domainMax = allNumericValues.length ? Math.max(...allNumericValues) : 0;
-  const valueDomain = allNumericValues.length ? { min: domainMin, max: domainMax } : null;
+  const dataMin = allNumericValues.length ? Math.min(...allNumericValues) : 0;
+  const dataMax = allNumericValues.length ? Math.max(...allNumericValues) : 0;
+  // Effective color domain: auto (data min/max) or manual (fixed, for comparable panels)
+  let domainMin = dataMin;
+  let domainMax = dataMax;
+  if (options.colorDomainMode === 'manual') {
+    if (typeof options.colorDomainMin === 'number') {
+      domainMin = options.colorDomainMin;
+    }
+    if (typeof options.colorDomainMax === 'number') {
+      domainMax = options.colorDomainMax;
+    }
+  }
+  const valueDomain = allNumericValues.length || options.colorDomainMode === 'manual' ? { min: domainMin, max: domainMax } : null;
 
   // ---- Build the color scale for the chosen colorMode ----
   const colorMode = options.colorMode || 'sequential';
@@ -159,6 +273,8 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   // Marginal sums per composite key (used for "total" sort and for tracking cells that were seen)
   const colKeySums = new Map<string, number>();
   const rowKeySums = new Map<string, number>();
+  // Raw aggregated value per (rowKey||colKey) pair (used for "cluster" seriation).
+  const cellRaw = new Map<string, number>();
   // Track every (rowKey, colKey) pair that appears in the data, even when null,
   // so we can tell "queried and null" apart from "no data at all".
   const seenCells = new Set<string>();
@@ -191,22 +307,43 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
       if (typeof v === 'number' && !isNaN(v)) {
         colKeySums.set(colKey, (colKeySums.get(colKey) || 0) + v);
         rowKeySums.set(rowKey, (rowKeySums.get(rowKey) || 0) + v);
+        const pk = `${rowKey}||${colKey}`;
+        cellRaw.set(pk, (cellRaw.get(pk) || 0) + v);
       }
     });
 
-    // Sort keys by name (default) or by marginal total (largest first)
+    // Sort keys by name (default), by marginal total, or by cluster (seriation)
     const byName = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
     const byTotal = (sums: Map<string, number>) => (a: string, b: string) => {
       const diff = (sums.get(b) || 0) - (sums.get(a) || 0);
       return diff !== 0 ? diff : byName(a, b);
     };
+    const byScore = (scores: Map<string, number>) => (a: string, b: string) => {
+      const diff = (scores.get(a) || 0) - (scores.get(b) || 0);
+      return diff !== 0 ? diff : byName(a, b);
+    };
 
-    compositeColKeys = Array.from(colKeySet).sort(
-      options.colSort === 'total' ? byTotal(colKeySums) : byName
-    );
-    compositeRowKeys = Array.from(rowKeySet).sort(
-      options.rowSort === 'total' ? byTotal(rowKeySums) : byName
-    );
+    // Compute cluster ordering only when requested
+    let rowScores: Map<string, number> | null = null;
+    let colScores: Map<string, number> | null = null;
+    if (options.rowSort === 'cluster' || options.colSort === 'cluster') {
+      const seriation = computeSeriation(Array.from(rowKeySet), Array.from(colKeySet), cellRaw);
+      rowScores = seriation.rowScores;
+      colScores = seriation.colScores;
+    }
+
+    const pickComparator = (mode: string, sums: Map<string, number>, scores: Map<string, number> | null) => {
+      if (mode === 'total') {
+        return byTotal(sums);
+      }
+      if (mode === 'cluster' && scores) {
+        return byScore(scores);
+      }
+      return byName;
+    };
+
+    compositeColKeys = Array.from(colKeySet).sort(pickComparator(options.colSort, colKeySums, colScores));
+    compositeRowKeys = Array.from(rowKeySet).sort(pickComparator(options.rowSort, rowKeySums, rowScores));
   }
 
   // Extract display names from composite keys
@@ -442,6 +579,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
         legendData.push({
           label: text,
           color: colorMap(val),
+          value: typeof val === 'number' ? val : null,
         });
     });
   }
