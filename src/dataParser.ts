@@ -25,14 +25,23 @@ function rgbToHex(r: number, g: number, b: number): string {
   const c = (x: number) => Math.round(Math.max(0, Math.min(255, x))).toString(16).padStart(2, '0');
   return '#' + c(r) + c(g) + c(b);
 }
-// Build an interpolator over a list of hex stops, t in [0,1]
+// Build an interpolator over a list of hex stops, t in [0,1].
+// Non-finite input (NaN/Infinity) falls back to the low end rather than throwing.
 function makeRamp(stops: string[]): (t: number) => string {
   const rgb = stops.map(hexToRgb);
+  const n = rgb.length - 1;
   return (t: number) => {
+    if (!isFinite(t)) {
+      t = 0;
+    }
     t = Math.max(0, Math.min(1, t));
-    const n = rgb.length - 1;
     const f = t * n;
-    const i = Math.min(Math.floor(f), n - 1);
+    let i = Math.floor(f);
+    if (i < 0) {
+      i = 0;
+    } else if (i > n - 1) {
+      i = n - 1;
+    }
     const frac = f - i;
     const a = rgb[i];
     const b = rgb[i + 1];
@@ -42,6 +51,33 @@ function makeRamp(stops: string[]): (t: number) => string {
 
 // Sequential single-hue blue ramp, light -> dark (dataviz reference palette)
 const SEQ_STOPS = ['#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95', '#0d366b'];
+
+/**
+ * Return a field's values as a plain array, tolerant of Grafana's differing
+ * representations: a plain array (Grafana 13+ runtime), a Vector with toArray(),
+ * or a Vector-like object with length + get(). Using Object.values() directly on a
+ * Vector returns the internal buffer, not the values — this normalizes that away.
+ */
+function fieldValuesArray(field: any): any[] {
+  const v = field && field.values;
+  if (!v) {
+    return [];
+  }
+  if (Array.isArray(v)) {
+    return v;
+  }
+  if (typeof v.toArray === 'function') {
+    return v.toArray();
+  }
+  if (typeof v.length === 'number' && typeof v.get === 'function') {
+    const out: any[] = [];
+    for (let i = 0; i < v.length; i++) {
+      out.push(v.get(i));
+    }
+    return out;
+  }
+  return Object.values(v);
+}
 
 /**
  * Spectral seriation: order rows and columns so similar ones sit next to each other,
@@ -182,7 +218,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   const valKey = valueField[0].name;
 
   // ---- Determine the value domain (min/max) for the built-in color ramps ----
-  let allNumericValues: number[] = (Object.values(frame.fields[valKey].values) as any[]).filter(
+  let allNumericValues: number[] = fieldValuesArray(frame.fields[valKey]).filter(
     (v) => typeof v === 'number' && !isNaN(v)
   );
   const dataMin = allNumericValues.length ? Math.min(...allNumericValues) : 0;
@@ -565,7 +601,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
       }
     } else {
       // get unique categories
-      let allValues: string[] = Object.values(frame.fields[valKey].values);
+      let allValues: any[] = fieldValuesArray(frame.fields[valKey]);
       let unique = new Set(allValues);
       tempValues = [...unique];
     }
