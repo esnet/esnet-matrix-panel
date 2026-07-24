@@ -279,10 +279,10 @@ function createViz(
   }
 
   // find the length of the longest name. this will inform the margin and name truncation
-  var longestColName = colNames.reduce((a, b) => {
+  let longestColName = colNames.reduce((a, b) => {
     return a.length > b.length ? a : b;
   });
-  var longestRowName = rowNames.reduce((a, b) => {
+  let longestRowName = rowNames.reduce((a, b) => {
     return a.length > b.length ? a : b;
   });
 
@@ -313,8 +313,8 @@ function createViz(
   const labelOrientation = options.labelOrientation || 'auto';
   const colLineHeight = Math.ceil(txtSize * 18) + 12;
   let colHorizontal = labelOrientation === 'horizontal';
-  var colTxtOffset = (colHorizontal ? colLineHeight : effColW) + labelPad;
-  var rowTxtOffset = effRowW + labelPad;
+  let colTxtOffset = (colHorizontal ? colLineHeight : effColW) + labelPad;
+  let rowTxtOffset = effRowW + labelPad;
 
   // Category header configuration
   const colGrouping = options.enableColGrouping && colCategories && colCategories.length > 0;
@@ -433,7 +433,7 @@ function createViz(
   }
 
   // set the dimensions and margins of the graph
-  var margin = {
+  let margin = {
       top: colTxtOffset + colCategoryHeaderHeight,
       right: marginalBand,
       bottom: marginalBand,
@@ -454,8 +454,8 @@ function createViz(
     .style('opacity', 0);
 
   // append the svg object to the body of the page
-  var svgClass = `svg-${id}`;
-  var svg = d3
+  let svgClass = `svg-${id}`;
+  const svg = d3
     .select(elem)
     .append('svg')
     .attr('id', svgClass)
@@ -465,10 +465,10 @@ function createViz(
     .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
   // index-based scales to support duplicate names across categories
-  var x = function (colIndex) {
+  let x = function (colIndex) {
     return columnPositions[colIndex] ? columnPositions[colIndex].x : 0;
   };
-  var y = function (rowIndex) {
+  let y = function (rowIndex) {
     return rowPositions[rowIndex] ? rowPositions[rowIndex].y : 0;
   };
 
@@ -514,7 +514,7 @@ function createViz(
   }
 
   // ---- X axis labels (rotated -90 by default; horizontal when they fit) ----
-  var xAxisGroup = svg.append('g').attr('class', 'x-axis');
+  const xAxisGroup = svg.append('g').attr('class', 'x-axis');
   columnPositions.forEach((pos, idx) => {
     let label;
     if (colHorizontal) {
@@ -562,7 +562,7 @@ function createViz(
   });
 
   // ---- Y axis labels ----
-  var yAxisGroup = svg.append('g').attr('class', 'y-axis');
+  const yAxisGroup = svg.append('g').attr('class', 'y-axis');
   rowPositions.forEach((pos, idx) => {
     const label = yAxisGroup
       .append('text')
@@ -698,14 +698,14 @@ function createViz(
   }
 
   // ---- the matrix cells ----
-  var outer = d3.local();
-  var svg_g = d3.select('#' + svgClass).selectAll('svg > g');
+  let outer = d3.local();
+  let svg_g = d3.select('#' + svgClass).selectAll('svg > g');
   const rectClass = `rectArea-${id}`;
-  var rectArea = svg_g.append('g').attr('class', rectClass);
+  const rectArea = svg_g.append('g').attr('class', rectClass);
 
-  var rows = rectArea.selectAll('g').data(matrix).enter().append('g').attr('class', 'row');
+  let rows = rectArea.selectAll('g').data(matrix).enter().append('g').attr('class', 'row');
 
-  var rects = rows
+  let rects = rows
     .selectAll('rect')
     .data(function (d, i) {
       outer.set(this, i);
@@ -715,7 +715,7 @@ function createViz(
     .append('a')
     .attr('xlink:href', (d) => {
       if (linkURL) {
-        var thisURL = linkURL;
+        let thisURL = linkURL;
         if (urlVar1) {
           thisURL = thisURL.concat(`&var-${urlVar1}=${d.row}`);
         }
@@ -919,7 +919,7 @@ function createViz(
 
   ////// LEGEND ////////////
   if (options.showLegend) {
-    var legendClass = `legend-${id}`;
+    let legendClass = `legend-${id}`;
 
     // Detect which special-cell states are present so we can key them below.
     let hasNull = false;
@@ -982,13 +982,13 @@ function createViz(
     // value tolerance band for interactive legend highlighting
     const legendBand = valueDomain ? (valueDomain.max - valueDomain.min) * 0.06 || 1 : 1;
 
-    var div = d3.select(elem).append('div').attr('class', `matrix-legend-${id}`).append('svg').attr('id', legendClass);
+    let div = d3.select(elem).append('div').attr('class', `matrix-legend-${id}`).append('svg').attr('id', legendClass);
     const colorMode = options.colorMode || 'sequential';
     const useGradient = colorMode === 'sequential' || colorMode === 'diverging';
 
     ////////////// range - continuous or discrete //////////////////////
-    if (options.legendType == 'range') {
-      var lsvg = d3.select(`#${legendClass}`);
+    if (options.legendType === 'range') {
+      let lsvg = d3.select(`#${legendClass}`);
       const barX = 4;
       const barY = 20;
       const barH = 12;
@@ -1144,7 +1144,7 @@ function createViz(
       lsvg.attr('width', Math.max(barW + 40, 180)).attr('height', keyEndY + 4);
     } else {
       /////////// categorical - circles ////////////////////////////
-      var lsvg2 = d3.select(`#${legendClass}`);
+      let lsvg2 = d3.select(`#${legendClass}`);
       lsvg2
         .append('g')
         .selectAll('legendCircles')
@@ -1340,6 +1340,7 @@ const getStyles = (theme: GrafanaTheme2) => {
  * @param {number} height Height of panel
  * @return {*} A d3 callback
  */
+/* eslint-disable react-hooks/rules-of-hooks */
 function matrix(
   rowNames,
   colNames,
