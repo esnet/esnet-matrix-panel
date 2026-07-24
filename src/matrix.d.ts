@@ -1,12 +1,17 @@
-import { MatrixData, MatrixOptions } from './types';
-
 export function matrix(
-  rowNames: any[],
-  colNames: any[],
-  matrix: DataMatrixCell[][],
+  rowNames: any,
+  colNames: any,
+  matrix: any,
   id: number,
-  options: MatrixOptions,
-  legend: LegendData[],
-  colCategories: Category[],
-  rowCategories: Category[],
+  width: number,
+  height: number,
+  options: any,
+  legend: any,
+  colMetadata: any,
+  colCategories: any,
+  rowMetadata: any,
+  rowCategories: any,
+  rowTotals: any,
+  colTotals: any,
+  valueDomain: any
 ): LegacyRef<SVGSVGElement> | undefined;
