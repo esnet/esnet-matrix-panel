@@ -1,4 +1,7 @@
+import { DisplayValue } from '@grafana/data';
+
 export interface MatrixOptions {
+  sortType: string;
   sourceField: string;
   targetField: string;
   valueField: string;
@@ -56,10 +59,44 @@ export interface MatrixOptions {
   urlOther: boolean;
   urlOtherText: string;
   inputList: boolean;
-  staticRows: string[];
-  staticColumns: string[];
-  aggregationMethod: string;
+  staticRows: string;
+  staticColumns: string;
   showLegend: boolean;
   legendType: string;
   thresholds: any[];
 }
+
+export type Category = {
+  name: any;
+  items: any[];
+};
+
+export type Heading = {
+  name: string;
+  x: number;
+  width: number;
+  category: string;
+  categoryIndex: number;
+};
+
+export type MatrixData = {
+  rowNames: string[] | null;
+  colNames: string[] | null;
+  colCategories: Category[];
+  rowCategories: Category[];
+  data: DataMatrixCell[][] | string | null;
+  legend: LegendData[] | null;
+};
+
+export type DataMatrixCell = {
+  row: string;
+  col: string;
+  val: number;
+  color: string;
+  display: DisplayValue;
+};
+
+export type LegendData = {
+  label: string;
+  color: string;
+};

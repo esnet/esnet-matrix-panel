@@ -24,3 +24,12 @@ update grafana tooling to webpack
 - tooltip improvements
 - minor fixes to layouts & padding
 - bumped d3 version
+
+## 2.0.2
+- adds grouping feature for rows/columns
+
+## 2.1.0
+- fixes truncation bug that was introduced
+- adds sort options for rows/columns
+- refactor to align with create-plugin 7.3
+- improves type annotations
