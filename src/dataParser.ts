@@ -317,8 +317,15 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
 
   // IF static list toggle is set, use input list
   if (options.inputList) {
-    const staticRows = options.staticRows.split(',');
-    const staticCols = options.staticColumns.split(',');
+    // Tolerate empty/undefined lists (the option can be enabled before the fields
+    // are filled in) and trim whitespace so " a, b " doesn't create phantom / padded keys.
+    const splitList = (s: string | undefined) =>
+      (s || '')
+        .split(',')
+        .map((t: string) => t.trim())
+        .filter((t: string) => t.length > 0);
+    const staticRows = splitList(options.staticRows);
+    const staticCols = splitList(options.staticColumns);
     compositeRowKeys = Array.from(new Set(staticRows));
     compositeColKeys = Array.from(new Set(staticCols));
   } else {

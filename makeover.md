@@ -188,6 +188,7 @@ Sample datasets live in `sample-data/` (load them via the TestData datasource �
 - `3-edge-cases.csv` — null vs. no-data distinction
 - `4-stress-30x30.csv` — fit-to-panel, frozen labels, in-cell label thresholding
 
-A demo dashboard covering all of the above is at **`/d/matrix-makeover-demo`**.
-Check it in **both light and dark** Grafana themes, and hover cells to see the
-row/column cross-highlight.
+To exercise everything, add an **ESnet Matrix** panel to any dashboard, point it at a
+TestData datasource loading one of the CSVs above, and map the Rows / Columns / Value
+fields. Check it in **both light and dark** Grafana themes, and hover cells to see the
+row/column cross-highlight. (No demo dashboard is bundled in the repo.)

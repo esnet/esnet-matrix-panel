@@ -1,9 +1,12 @@
 import { useD3 } from './useD3.js';
 import * as d3 from './d3.min.js';
 import { css } from '@emotion/css';
-import { GrafanaTheme2 } from '@grafana/data';
+import { GrafanaTheme2, textUtil } from '@grafana/data';
 import { useStyles2, useTheme2 } from '@grafana/ui';
-import sanitizeHtml from 'sanitize-html';
+
+// 2.1.1 dropped the sanitize-html dependency in favor of Grafana's built-in
+// sanitizer; keep the same local `sanitizeHtml` name so the rest of the file is unchanged.
+const sanitizeHtml = textUtil.sanitize;
 
 /** Pick a readable text color (dark ink or white) for a given fill color. */
 function contrastText(fill) {
