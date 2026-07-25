@@ -2,7 +2,7 @@ import React from 'react';
 import { PanelProps, GrafanaTheme2 } from '@grafana/data';
 import { MatrixOptions } from 'types';
 import { parseData } from 'dataParser';
-import { useTheme2, CustomScrollbar } from '@grafana/ui';
+import { useTheme2, ScrollContainer } from '@grafana/ui';
 
 import * as Matrix from './matrix.js';
 
@@ -78,7 +78,7 @@ const MatrixTable: React.FC<{ theme: GrafanaTheme2; parsed: any; options: Matrix
     whiteSpace: 'nowrap',
   };
   return (
-    <CustomScrollbar autoHeightMin="100%">
+    <ScrollContainer minHeight="100%">
       <table
         style={{
           borderCollapse: 'collapse',
@@ -117,7 +117,7 @@ const MatrixTable: React.FC<{ theme: GrafanaTheme2; parsed: any; options: Matrix
           ))}
         </tbody>
       </table>
-    </CustomScrollbar>
+    </ScrollContainer>
   );
 };
 
@@ -239,8 +239,8 @@ export const EsnetMatrix: React.FC<Props> = ({ options, data, width, height, id 
 
   const thisPanelClass = `matrix-panel-${id}`;
   return (
-    <CustomScrollbar autoHeightMin="100%">
+    <ScrollContainer minHeight="100%">
       <div ref={ref} id={thisPanelClass}></div>
-    </CustomScrollbar>
+    </ScrollContainer>
   );
 };
