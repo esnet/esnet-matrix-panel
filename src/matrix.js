@@ -1,5 +1,6 @@
 import { useD3 } from './useD3.js';
-import * as d3 from './d3.min.js';
+import { select, local } from 'd3-selection';
+import 'd3-transition'; // side-effect import: adds selection.transition()
 import { css } from '@emotion/css';
 import { GrafanaTheme2, textUtil } from '@grafana/data';
 import { useStyles2, useTheme2 } from '@grafana/ui';
@@ -198,7 +199,7 @@ function createViz(
     if (d === -1) {
       return;
     }
-    d3.select(node).raise().attr('stroke', theme.colors.text.primary).attr('stroke-width', 2);
+    select(node).raise().attr('stroke', theme.colors.text.primary).attr('stroke-width', 2);
     if (highlightRowCol) {
       applyHighlight(+node.getAttribute('data-r'), +node.getAttribute('data-c'));
     }
@@ -209,7 +210,7 @@ function createViz(
       .style('opacity', 1);
   }
   function deactivateCell(node, d) {
-    d3.select(node).attr('stroke', cellStroke(d)).attr('stroke-width', cellStrokeWidth(d));
+    select(node).attr('stroke', cellStroke(d)).attr('stroke-width', cellStrokeWidth(d));
     if (highlightRowCol) {
       clearHighlight();
     }
@@ -447,16 +448,14 @@ function createViz(
     elem.replaceChildren();
   }
 
-  const tooltip = d3
-    .select(elem)
+  const tooltip = select(elem)
     .append('div')
     .attr('class', `${styles.tooltip} matrix-tooltip-${id}`)
     .style('opacity', 0);
 
   // append the svg object to the body of the page
   let svgClass = `svg-${id}`;
-  const svg = d3
-    .select(elem)
+  const svg = select(elem)
     .append('svg')
     .attr('id', svgClass)
     .attr('width', width + margin.left + margin.right)
@@ -698,8 +697,8 @@ function createViz(
   }
 
   // ---- the matrix cells ----
-  let outer = d3.local();
-  let svg_g = d3.select('#' + svgClass).selectAll('svg > g');
+  let outer = local();
+  let svg_g = select('#' + svgClass).selectAll('svg > g');
   const rectClass = `rectArea-${id}`;
   const rectArea = svg_g.append('g').attr('class', rectClass);
 
@@ -809,7 +808,7 @@ function createViz(
     firstCell.setAttribute('tabindex', '0');
   }
   // label the grid for screen readers
-  d3.select('#' + svgClass)
+  select('#' + svgClass)
     .attr('role', 'img')
     .attr('aria-label', `Matrix of ${rowNames.length} rows by ${colNames.length} columns`);
   rectArea.attr('role', 'grid');
@@ -982,13 +981,13 @@ function createViz(
     // value tolerance band for interactive legend highlighting
     const legendBand = valueDomain ? (valueDomain.max - valueDomain.min) * 0.06 || 1 : 1;
 
-    let div = d3.select(elem).append('div').attr('class', `matrix-legend-${id}`).append('svg').attr('id', legendClass);
+    let div = select(elem).append('div').attr('class', `matrix-legend-${id}`).append('svg').attr('id', legendClass);
     const colorMode = options.colorMode || 'sequential';
     const useGradient = colorMode === 'sequential' || colorMode === 'diverging';
 
     ////////////// range - continuous or discrete //////////////////////
     if (options.legendType === 'range') {
-      let lsvg = d3.select(`#${legendClass}`);
+      let lsvg = select(`#${legendClass}`);
       const barX = 4;
       const barY = 20;
       const barH = 12;
@@ -1144,7 +1143,7 @@ function createViz(
       lsvg.attr('width', Math.max(barW + 40, 180)).attr('height', keyEndY + 4);
     } else {
       /////////// categorical - circles ////////////////////////////
-      let lsvg2 = d3.select(`#${legendClass}`);
+      let lsvg2 = select(`#${legendClass}`);
       lsvg2
         .append('g')
         .selectAll('legendCircles')
@@ -1203,8 +1202,7 @@ function createViz(
 function measureMaxLabelWidth(elem, names, fontEm, fontFamily, capChars) {
   let maxW = 0;
   try {
-    const tmp = d3
-      .select(elem)
+    const tmp = select(elem)
       .append('svg')
       .attr('class', 'matrix-label-measure')
       .style('position', 'absolute')
@@ -1237,7 +1235,7 @@ function measureMaxLabelWidth(elem, names, fontEm, fontFamily, capChars) {
 function truncateToPixels(text, maxPixels) {
   text.each(function () {
     const node = this;
-    const full = d3.select(node).text();
+    const full = select(node).text();
     if (maxPixels <= 0) {
       return;
     }
@@ -1247,7 +1245,7 @@ function truncateToPixels(text, maxPixels) {
     let label = full;
     while (label.length > 1 && node.getComputedTextLength() > maxPixels) {
       label = label.slice(0, -1);
-      d3.select(node).text(label + '…');
+      select(node).text(label + '…');
     }
   });
 }
