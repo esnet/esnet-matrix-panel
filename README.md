@@ -7,10 +7,17 @@ Note: This is NOT inteded to use with time series data or large data sets.  It a
 
 ## Options
 ### Display
-**Show Legend:** Adds legend to bottom of panel.
+**Show Legend:** Adds a legend to the bottom of the panel. The legend is built from whatever actually colors the cells — normally the steps you configure under **Standard Options > Thresholds**.
 
+**Legend Type:** Leave this on **Auto** and the legend follows the cell color source:
 
-**Legend Type:** There are two types.  Categorical will produce a legend with distinct colors for each unique detected value.  Range will generate a bar with the detected range of colors & values.
+- *Thresholds* — one segment per configured threshold step, with the boundary values printed underneath. Every step is shown, including ones no data happens to fall into. This is what you get with the default **Standard Options (thresholds)** color mode.
+- *Gradient* — a continuous bar with a labeled tick axis, used when a ramp colors the cells (the Sequential or Diverging color modes, or a `continuous-*` scheme picked in Standard Options).
+- *Categorical* — one swatch per distinct value, wrapped over as many rows as it needs and capped at 24 entries so a high-cardinality field cannot bury the matrix.
+
+You can pin a specific type instead of Auto, but a type that disagrees with how the cells are colored will read as misleading.
+
+Hovering a legend entry highlights exactly the cells it covers, and a **null** / **no data** key appears whenever such cells are present.
 
 **Source Field:** The field you want to use on the vertical axis.
 
@@ -33,7 +40,7 @@ Note: This is NOT inteded to use with time series data or large data sets.  It a
 **No Data Color:** The color to use for a square when there is no value returned by the query for the specified source and target pair.
 
 ### Colors
-The color of each square will be determined by the selected metric and the color choice in the **Standard Options**.
+By default the color of each square is determined by the selected metric and the thresholds under **Standard Options**. **Cell Color Mode** can switch that to one of the panel's own ramps (Sequential or Diverging) instead; the legend follows whichever you pick.
 
 
 

@@ -1,4 +1,6 @@
 import { useD3 } from './useD3.js';
+import { estimateLegendHeight } from './legend';
+import { renderLegend } from './legendRender.js';
 import { select, local } from 'd3-selection';
 import 'd3-transition'; // side-effect import: adds selection.transition()
 import { css } from '@emotion/css';
@@ -164,10 +166,27 @@ function createViz(
       applyHighlight(r, c);
     }
   }
-  // highlight cells whose value is within `band` of `target` (interactive legend)
-  function highlightByValue(target, band) {
+  // Highlight the cells a legend entry actually stands for: the half-open band
+  // [from, to), with null meaning unbounded on that side. `from === to` is the
+  // exact-value case used by categorical entries.
+  function inBand(val, from, to) {
+    if (typeof val !== 'number' || isNaN(val)) {
+      return false;
+    }
+    if (from != null && to != null && from === to) {
+      return val === from;
+    }
+    if (from != null && val < from) {
+      return false;
+    }
+    if (to != null && val >= to) {
+      return false;
+    }
+    return true;
+  }
+  function highlightByRange(from, to) {
     rectArea.selectAll('rect.matrix-cell').style('opacity', function (cd) {
-      const on = cd !== -1 && !cd.isNull && typeof cd.val === 'number' && Math.abs(cd.val - target) <= band;
+      const on = cd !== -1 && !cd.isNull && inBand(cd.val, from, to);
       return on ? 1 : 0.15;
     });
   }
@@ -347,7 +366,8 @@ function createViz(
   if (options.sizeMode === 'fit' && panelWidth > 0 && panelHeight > 0) {
     const marginLeftEst = rowTxtOffset + rowCategoryHeaderWidth;
     const marginTopEst = colTxtOffset + colCategoryHeaderHeight;
-    const legendReserve = options.showLegend ? 64 : 0;
+    // reserve exactly what this legend needs, not a flat guess
+    const legendReserve = options.showLegend ? estimateLegendHeight(legend, panelWidth) : 0;
     const availW = panelWidth - marginLeftEst - marginalBand - colGapTotal - 4;
     const availH = panelHeight - marginTopEst - marginalBand - rowGapTotal - legendReserve - 4;
     const fitW = availW / nCols;
@@ -917,276 +937,22 @@ function createViz(
   }
 
   ////// LEGEND ////////////
-  if (options.showLegend) {
-    let legendClass = `legend-${id}`;
-
-    // Detect which special-cell states are present so we can key them below.
-    let hasNull = false;
-    let hasNoData = false;
-    for (let r = 0; r < matrix.length && !(hasNull && hasNoData); r++) {
-      for (let c = 0; c < matrix[r].length; c++) {
-        const cd = matrix[r][c];
-        if (cd === -1) {
-          hasNoData = true;
-        } else if (cd.isNull) {
-          hasNull = true;
-        }
-      }
-    }
-
-    // Append a "null" / "no data" key under the color scale, starting at yStart.
-    // Returns the y after the last key row.
-    function appendStateKeys(lsvgSel, xStart, yStart) {
-      let ky = yStart;
-      const rowStep = 18;
-      const swatch = 12;
-      const addRow = (fill, stroke, label, wantNull) => {
-        const krect = lsvgSel
-          .append('rect')
-          .attr('x', xStart)
-          .attr('y', ky)
-          .attr('width', swatch)
-          .attr('height', swatch)
-          .attr('rx', Math.min(cornerRadius, 3))
-          .attr('fill', fill)
-          .attr('stroke', stroke)
-          .attr('stroke-width', stroke === 'none' ? 0 : 1)
-          .style('cursor', 'pointer')
-          .on('mouseover', function () {
-            highlightByState(wantNull);
-          })
-          .on('mouseout', function () {
-            clearHighlight();
-          });
-        lsvgSel
-          .append('text')
-          .attr('x', xStart + swatch + 6)
-          .attr('y', ky + swatch - 2)
-          .attr('font-size', '11px')
-          .style('font-family', theme.typography.fontFamily)
-          .attr('fill', theme.colors.text.secondary)
-          .text(label);
-        void krect;
-        ky += rowStep;
-      };
-      if (hasNull) {
-        addRow(nullColor, 'none', 'null', true);
-      }
-      if (hasNoData) {
-        addRow(distinctNoData ? 'none' : defaultColor, distinctNoData ? noDataStroke : 'none', 'no data', false);
-      }
-      return ky;
-    }
-
-    // value tolerance band for interactive legend highlighting
-    const legendBand = valueDomain ? (valueDomain.max - valueDomain.min) * 0.06 || 1 : 1;
-
-    let div = select(elem).append('div').attr('class', `matrix-legend-${id}`).append('svg').attr('id', legendClass);
-    const colorMode = options.colorMode || 'sequential';
-    const useGradient = colorMode === 'sequential' || colorMode === 'diverging';
-
-    ////////////// range - continuous or discrete //////////////////////
-    if (options.legendType === 'range') {
-      let lsvg = select(`#${legendClass}`);
-      const barX = 4;
-      const barY = 20;
-      const barH = 12;
-      const nSteps = legend.length;
-      const barW = useGradient ? 200 : Math.max(nSteps * 14, 160);
-
-      // title
-      lsvg
-        .append('text')
-        .attr('x', barX)
-        .attr('y', 12)
-        .attr('font-size', '11px')
-        .attr('fill', theme.colors.text.secondary)
-        .style('font-family', theme.typography.fontFamily)
-        .text(valText);
-
-      if (useGradient) {
-        // smooth gradient bar built from the sampled ramp colors
-        const gradId = `matrix-grad-${id}`;
-        const defs = lsvg.append('defs');
-        const grad = defs
-          .append('linearGradient')
-          .attr('id', gradId)
-          .attr('x1', '0%')
-          .attr('x2', '100%')
-          .attr('y1', '0%')
-          .attr('y2', '0%');
-        legend.forEach((d, i) => {
-          grad
-            .append('stop')
-            .attr('offset', `${(i / (nSteps - 1)) * 100}%`)
-            .attr('stop-color', d.color);
-        });
-        lsvg
-          .append('rect')
-          .attr('x', barX)
-          .attr('y', barY)
-          .attr('width', barW)
-          .attr('height', barH)
-          .attr('rx', 2)
-          .attr('fill', `url(#${gradId})`)
-          .attr('stroke', theme.colors.border.weak)
-          .attr('stroke-width', 1)
-          .style('cursor', valueDomain ? 'crosshair' : null)
-          .on('mousemove', function (event) {
-            if (!valueDomain) {
-              return;
-            }
-            const mx = Math.max(0, Math.min(barW, event.offsetX - barX));
-            const target = valueDomain.min + (mx / barW) * (valueDomain.max - valueDomain.min);
-            highlightByValue(target, legendBand);
-          })
-          .on('mouseout', function () {
-            clearHighlight();
-          });
-
-        // min / max labels
-        lsvg
-          .append('text')
-          .attr('x', barX)
-          .attr('y', barY + barH + 14)
-          .attr('text-anchor', 'start')
-          .attr('font-size', '11px')
-          .style('font-family', theme.typography.fontFamily)
-          .attr('fill', theme.colors.text.primary)
-          .text(legend[0].label);
-        lsvg
-          .append('text')
-          .attr('x', barX + barW)
-          .attr('y', barY + barH + 14)
-          .attr('text-anchor', 'end')
-          .attr('font-size', '11px')
-          .style('font-family', theme.typography.fontFamily)
-          .attr('fill', theme.colors.text.primary)
-          .text(legend[nSteps - 1].label);
-
-        // diverging midpoint tick
-        if (colorMode === 'diverging' && valueDomain && valueDomain.max !== valueDomain.min) {
-          const mid = typeof options.divergingMidpoint === 'number' ? options.divergingMidpoint : 0;
-          const frac = (mid - valueDomain.min) / (valueDomain.max - valueDomain.min);
-          if (frac > 0.02 && frac < 0.98) {
-            const tx = barX + frac * barW;
-            lsvg
-              .append('line')
-              .attr('x1', tx)
-              .attr('x2', tx)
-              .attr('y1', barY - 2)
-              .attr('y2', barY + barH + 2)
-              .attr('stroke', theme.colors.text.primary)
-              .attr('stroke-width', 1);
-            lsvg
-              .append('text')
-              .attr('x', tx)
-              .attr('y', barY + barH + 14)
-              .attr('text-anchor', 'middle')
-              .attr('font-size', '11px')
-              .style('font-family', theme.typography.fontFamily)
-              .attr('fill', theme.colors.text.primary)
-              .text(String(mid));
-          }
-        }
-      } else {
-        // discrete swatches (standard / thresholds mode)
-        const swatchW = barW / nSteps;
-        lsvg
-          .append('g')
-          .selectAll('legendBars')
-          .data(legend)
-          .enter()
-          .append('rect')
-          .attr('class', `legend-bar-${id}`)
-          .attr('width', swatchW)
-          .attr('height', barH)
-          .attr('fill', function (d) {
-            return d.color;
-          })
-          .attr('x', function (d, i) {
-            return barX + i * swatchW;
-          })
-          .attr('y', barY)
-          .style('cursor', 'pointer')
-          .on('mouseover', function (event, d) {
-            if (d.value != null) {
-              highlightByValue(d.value, legendBand);
-            }
-          })
-          .on('mouseout', function () {
-            clearHighlight();
-          });
-        const tickIdx = [0, Math.floor((nSteps - 1) / 2), nSteps - 1].filter((v, i, arr) => arr.indexOf(v) === i);
-        lsvg
-          .append('g')
-          .selectAll('legendLabels')
-          .data(tickIdx)
-          .enter()
-          .append('text')
-          .attr('x', function (i) {
-            return barX + i * swatchW + swatchW / 2;
-          })
-          .attr('y', barY + barH + 14)
-          .attr('text-anchor', function (i) {
-            return i === 0 ? 'start' : i === nSteps - 1 ? 'end' : 'middle';
-          })
-          .attr('font-size', '11px')
-          .style('font-family', theme.typography.fontFamily)
-          .text(function (i) {
-            return legend[i].label;
-          })
-          .attr('fill', theme.colors.text.primary);
-      }
-
-      const keyEndY = appendStateKeys(lsvg, barX, barY + barH + 24);
-      lsvg.attr('width', Math.max(barW + 40, 180)).attr('height', keyEndY + 4);
-    } else {
-      /////////// categorical - circles ////////////////////////////
-      let lsvg2 = select(`#${legendClass}`);
-      lsvg2
-        .append('g')
-        .selectAll('legendCircles')
-        .data(legend)
-        .enter()
-        .append('circle')
-        .attr('class', `legend-circle-${id}`)
-        .attr('r', 8)
-        .attr('fill', function (d) {
-          return d.color;
-        })
-        .attr('cx', function (d, i) {
-          return 25 + i * 75;
-        })
-        .attr('cy', 20)
-        .style('cursor', 'pointer')
-        .on('mouseover', function (event, d) {
-          if (d.value != null) {
-            highlightByValue(d.value, legendBand);
-          }
-        })
-        .on('mouseout', function () {
-          clearHighlight();
-        });
-      lsvg2
-        .append('g')
-        .selectAll('legendLabels')
-        .data(legend)
-        .enter()
-        .append('text')
-        .attr('x', function (d, i) {
-          return 15 + i * 75;
-        })
-        .attr('y', 50)
-        .text(function (d) {
-          return d.label;
-        })
-        .style('font-family', theme.typography.fontFamily)
-        .attr('fill', theme.colors.text.primary);
-      const catW = 25 + (legend.length - 1) * 75 + 20 + legend[legend.length - 1].label.length * 9;
-      const keyEndY = appendStateKeys(lsvg2, 15, 60);
-      lsvg2.attr('width', catW).attr('height', Math.max(66, keyEndY + 4));
-    }
+  if (options.showLegend && legend) {
+    renderLegend(
+      elem,
+      legend,
+      id,
+      {
+        availableWidth: panelWidth,
+        cornerRadius,
+        nullColor,
+        defaultColor,
+        distinctNoData,
+        noDataStroke,
+      },
+      theme,
+      { highlightByRange, highlightByState, clearHighlight }
+    );
   }
 }
 

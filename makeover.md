@@ -118,6 +118,7 @@ A second wave focused on comprehension, analytical power, and accessibility.
   a smooth gradient bar with labeled min/max (and a labeled midpoint tick for
   diverging), instead of discrete swatches. Standard-options mode keeps stepped
   swatches (matching its thresholds).
+  *Superseded by Round 3 — see "Legend rebuilt on thresholds" below.*
 - **Guided empty states.** Instead of a bare "No Data", the panel now tells you what
   to do — map Rows/Columns/Value fields, add a numeric column, reduce cell count,
   etc. — depending on what's actually missing. Parse failures render a friendly
@@ -151,14 +152,50 @@ A second wave focused on comprehension, analytical power, and accessibility.
 
 ---
 
+## Round 3 — legend rebuilt on thresholds
+
+The legend was still derived from the **data's min and max**: it sampled 10 evenly-spaced
+values across the range and drew them as a gradient or as 10 equal-width swatches. In
+`standard` color mode — the mode the plugin declares as its color source, via
+`preferThresholdMode` — that meant the legend never agreed with the cells:
+
+- swatch boundaries didn't line up with the threshold steps doing the coloring,
+- the configured boundary values were never printed,
+- threshold steps outside the data range vanished entirely,
+- hover highlighted everything within ±6% of the color domain rather than a real band,
+- `categorical` drew one circle per unique value at fixed 75px spacing, which ran off the
+  panel past ~8 values (≈800 circles on the 30×30 dataset).
+
+### What it does now
+- **Thresholds drive the legend.** Steps come from `field.config.thresholds` — real
+  colors, real boundary values, every step shown whether or not data lands in it.
+  Percentage-mode thresholds are converted to absolute values over the same field range
+  `getScaleCalculator` uses, so the printed numbers match the cell colors exactly.
+- **The legend follows the color source.** `Legend Type: Auto` resolves to *thresholds*,
+  *gradient* (the panel's ramps, or a Grafana `continuous-*` scheme), or *categorical*
+  (non-numeric values, a fixed color, or value mappings). A form can still be pinned.
+- **It fits.** A stepped bar is used when the boundary labels fit; otherwise the entries
+  wrap into a swatch list. Categorical caps at 24 entries with a `+N more` note.
+- **It reserves what it needs.** `layoutLegend` computes the geometry, and the grid
+  sizes itself against that instead of a flat 64px guess.
+- **Hover is exact.** Each entry carries the half-open band `[from, to)` it stands for,
+  so hovering highlights precisely those cells.
+- **`Cell Color Mode` now defaults to `standard`**, and the parser's fallback moved with
+  it — panels saved before that option existed were threshold-colored, so the fallback
+  now restores them rather than restyling them as a sequential ramp.
+
+---
+
 ## Files changed
 
 | File | Change |
 |---|---|
-| `src/types.ts` | Added the new fields to the `MatrixOptions` interface |
-| `src/module.ts` | Registered the new panel-editor options; added `Colors` and `Layout` option categories |
-| `src/dataParser.ts` | Built-in sequential/diverging color ramps; total-sort; null-vs-no-data tracking; marginal totals + value domain; numeric/NaN guards |
-| `src/matrix.js` | Rounded cells, spacers, hover cross-highlight, distinct no-data, in-cell labels, group bands, marginal bars, size encoding, fit sizing, frozen labels, improved legend, pixel-accurate truncation, tooltip fix |
+| `src/types.ts` | Added the new fields to the `MatrixOptions` interface; replaced `LegendData` with the `LegendModel` / `LegendItem` / `LegendStop` / `LegendTick` model |
+| `src/module.ts` | Registered the new panel-editor options; added `Colors` and `Layout` option categories; `Legend Type` → Auto/thresholds/gradient/categorical; `Cell Color Mode` defaults to `standard` |
+| `src/legend.ts` | **New.** Builds the legend model from thresholds / ramps / distinct values, and computes its layout and height (pure, unit-tested) |
+| `src/legendRender.js` | **New.** Draws the model: stepped threshold bar, gradient bar with tick axis, wrapped swatch list, null/no-data key |
+| `src/dataParser.ts` | Built-in sequential/diverging color ramps; total-sort; null-vs-no-data tracking; marginal totals + value domain; numeric/NaN guards; delegates the legend to `buildLegend` |
+| `src/matrix.js` | Rounded cells, spacers, hover cross-highlight, distinct no-data, in-cell labels, group bands, marginal bars, size encoding, fit sizing, frozen labels, pixel-accurate truncation, tooltip fix; legend delegated to `renderLegend`, highlight now band-based |
 | `src/matrix.d.ts` | Updated the `matrix()` signature (added `width`, `rowTotals`, `colTotals`, `valueDomain`) |
 | `src/EsnetMatrix.tsx` | Pass panel `width` and the new parsed-data fields into the matrix renderer |
 

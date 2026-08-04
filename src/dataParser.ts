@@ -1,4 +1,5 @@
 import { DataFrameView } from '@grafana/data';
+import { buildLegend } from './legend';
 
 /**
  * this function creates an adjacency matrix to be consumed by the chord
@@ -237,7 +238,10 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
   const valueDomain = allNumericValues.length || options.colorDomainMode === 'manual' ? { min: domainMin, max: domainMax } : null;
 
   // ---- Build the color scale for the chosen colorMode ----
-  const colorMode = options.colorMode || 'sequential';
+  // Default to 'standard' (Standard Options thresholds): it is what the plugin declares
+  // as its color source (preferThresholdMode), and it is how panels saved before this
+  // option existed were colored — so the fallback restores them rather than restyling them.
+  const colorMode = options.colorMode || 'standard';
   const isDark = !!theme.isDark;
   let colorScale: ((v: number) => string) | null = null;
   if (colorMode === 'sequential') {
@@ -592,40 +596,37 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     }
   }
 
-  // parse data for legend
-  let legendData: any[] = [];
-  if (options.showLegend) {
-    let tempValues: any[] = [];
-    if (options.legendType === 'range') {
-      // get min & max, steps (numeric values only)
-      let thisMin = domainMin;
-      let thisMax = domainMax;
-      let step = (thisMax - thisMin) / 10;
-      // push 10 steps to use for legend
-      tempValues = [];
-      for(let i = 0; i <= 10; i++) {
-        tempValues.push(thisMin + (i*step));
+  // Which special-cell states are present, so the legend knows whether to key them.
+  // Collected here while we already hold the matrix, rather than re-walking it later.
+  let hasNull = false;
+  let hasNoData = false;
+  for (let r = 0; r < dataMatrix.length && !(hasNull && hasNoData); r++) {
+    for (let c = 0; c < dataMatrix[r].length; c++) {
+      const cell = dataMatrix[r][c];
+      if (cell === -1) {
+        hasNoData = true;
+      } else if (cell.isNull) {
+        hasNull = true;
       }
-    } else {
-      // get unique categories
-      let allValues: any[] = fieldValuesArray(frame.fields[valKey]);
-      let unique = new Set(allValues);
-      tempValues = [...unique];
     }
-    tempValues.forEach((val) => {
-      // find display values, unit & color for each
-      // store in array
-      let text = valueField[0].display(val).text;
-      if (valueField[0].display(val).suffix) {
-        text = text + ` ${valueField[0].display(val).suffix}`;
-      }
-        legendData.push({
-          label: text,
-          color: colorMap(val),
-          value: typeof val === 'number' ? val : null,
-        });
-    });
   }
+
+  // The legend describes whatever actually colored the cells — threshold steps when
+  // the field's thresholds are the color source, a ramp when one is in play.
+  const legendModel = options.showLegend
+    ? buildLegend(valueField[0], options, theme, {
+        dataMin,
+        dataMax,
+        domain: valueDomain,
+        colorScale,
+        colorMap,
+        uniqueValues: [...new Set(fieldValuesArray(frame.fields[valKey]))].filter(
+          (v) => v != null && !(typeof v === 'number' && isNaN(v))
+        ),
+        hasNull,
+        hasNoData,
+      })
+    : null;
 
   let dataObject = {
     rows: rowNames,
@@ -635,7 +636,7 @@ export function parseData(data: { series: any[] }, options: any, theme: any) {
     rowMetadata: rowMetadata,
     rowCategories: rowCategories,
     data: dataMatrix,
-    legend: legendData,
+    legend: legendModel,
     rowTotals: rowTotals,
     colTotals: colTotals,
     valueDomain: valueDomain,

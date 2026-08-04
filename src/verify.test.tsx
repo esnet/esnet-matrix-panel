@@ -1,7 +1,15 @@
-import { toDataFrame, FieldType, createTheme, getDisplayProcessor } from '@grafana/data';
+import { toDataFrame, FieldType, createTheme, getDisplayProcessor, ThresholdsMode } from '@grafana/data';
 import { parseData } from './dataParser';
 
 const theme = createTheme();
+
+const thresholds = {
+  mode: ThresholdsMode.Absolute,
+  steps: [
+    { value: -Infinity, color: 'green' },
+    { value: 20, color: 'red' },
+  ],
+};
 
 function makeData(withCategories = false, values?: any[]) {
   const src = ['a', 'a', 'a', 'b', 'b', 'c', 'c'];
@@ -10,7 +18,7 @@ function makeData(withCategories = false, values?: any[]) {
   const fields: any[] = [
     { name: 'source', type: FieldType.string, values: src },
     { name: 'target', type: FieldType.string, values: tgt },
-    { name: 'gbps', type: FieldType.number, values: gbps },
+    { name: 'gbps', type: FieldType.number, values: gbps, config: { thresholds } },
   ];
   if (withCategories) {
     fields.push({ name: 'src_region', type: FieldType.string, values: ['R1', 'R1', 'R1', 'R2', 'R2', 'R1', 'R2'] });
@@ -38,9 +46,11 @@ const base: any = {
 };
 
 const combos: Array<[string, any, boolean]> = [
-  ['sequential + legend', { ...base, colorMode: 'sequential', showLegend: true, legendType: 'range' }, false],
-  ['diverging + midpoint', { ...base, colorMode: 'diverging', divergingMidpoint: 20, showLegend: true, legendType: 'range' }, false],
+  ['standard + threshold legend', { ...base, colorMode: 'standard', showLegend: true, legendType: 'auto' }, false],
+  ['sequential + legend', { ...base, colorMode: 'sequential', showLegend: true, legendType: 'auto' }, false],
+  ['diverging + midpoint', { ...base, colorMode: 'diverging', divergingMidpoint: 20, showLegend: true, legendType: 'auto' }, false],
   ['standard + categorical legend', { ...base, colorMode: 'standard', showLegend: true, legendType: 'categorical' }, false],
+  ['legacy legendType "range"', { ...base, colorMode: 'standard', showLegend: true, legendType: 'range' }, false],
   ['manual domain', { ...base, colorDomainMode: 'manual', colorDomainMin: 0, colorDomainMax: 50, showLegend: true }, false],
   ['sort total', { ...base, rowSort: 'total', colSort: 'total' }, false],
   ['sort cluster', { ...base, rowSort: 'cluster', colSort: 'cluster' }, false],
@@ -109,6 +119,36 @@ describe('color domain is computed from the data', () => {
     );
     // if the domain were empty/broken every cell would share one color
     expect(colors.size).toBeGreaterThan(1);
+  });
+});
+
+describe('legend comes out of the parser describing the real color source', () => {
+  test('default color mode is thresholds, and the legend is built from them', () => {
+    const parsed = parseData(makeData(false), { ...base, showLegend: true }, theme);
+    expect(parsed.legend!.kind).toBe('thresholds');
+    // the two configured steps, not 10 samples of the data range
+    expect(parsed.legend!.items).toHaveLength(2);
+    expect(parsed.legend!.items.map((i: any) => [i.from, i.to])).toEqual([
+      [null, 20],
+      [20, null],
+    ]);
+  });
+
+  test('the null / no-data key reflects the matrix the parser just built', () => {
+    // a->z is present but null; b->z never appears at all
+    const parsed = parseData(makeData(false), { ...base, showLegend: true }, theme);
+    expect(parsed.legend!.states).toEqual({ hasNull: true, hasNoData: true });
+  });
+
+  test('a ramp color mode yields a gradient instead', () => {
+    const parsed = parseData(makeData(false), { ...base, colorMode: 'sequential', showLegend: true }, theme);
+    expect(parsed.legend!.kind).toBe('gradient');
+    expect(parsed.legend!.stops.length).toBeGreaterThan(1);
+  });
+
+  test('no legend is built when the option is off', () => {
+    const parsed = parseData(makeData(false), { ...base, showLegend: false }, theme);
+    expect(parsed.legend).toBeNull();
   });
 });
 

@@ -316,20 +316,26 @@ plugin.setPanelOptions((builder) => {
   builder.addBooleanSwitch({
     path: 'showLegend',
     name: 'Show Legend',
+    description:
+      'Adds a legend below the matrix, built from whatever colors the cells — the steps under Standard Options > Thresholds, or the active color ramp.',
     category: OptionsCategory,
     defaultValue: false,
   });
   builder.addSelect({
     path: 'legendType',
     name: 'Legend Type',
+    description:
+      'Auto follows the cell color source. Pin a form to override it — note that a form which disagrees with how cells are colored will read as misleading.',
     category: OptionsCategory,
     showIf: legendBool(true),
-    defaultValue: 'range',
+    defaultValue: 'auto',
     settings: {
       allowCustomValue: false,
       options: [
-        { value: 'categorical', label: 'categorical' },
-        { value: 'range', label: 'range' },
+        { value: 'auto', label: 'Auto' },
+        { value: 'thresholds', label: 'Thresholds (steps)' },
+        { value: 'gradient', label: 'Gradient (continuous)' },
+        { value: 'categorical', label: 'Categorical (swatches)' },
       ],
     },
   });
@@ -495,13 +501,13 @@ plugin.setPanelOptions((builder) => {
     description:
       'How cell colors are derived. Sequential = single-hue ramp for magnitude. Diverging = two hues around a baseline. Standard = use the Standard Options color scheme / thresholds.',
     category: ColorCategory,
-    defaultValue: 'sequential',
+    defaultValue: 'standard',
     settings: {
       allowCustomValue: false,
       options: [
+        { value: 'standard', label: 'Standard Options (thresholds)' },
         { value: 'sequential', label: 'Sequential (single hue)' },
         { value: 'diverging', label: 'Diverging (around a baseline)' },
-        { value: 'standard', label: 'Standard Options (thresholds)' },
       ],
     },
   });
