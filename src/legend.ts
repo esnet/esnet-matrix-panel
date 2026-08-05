@@ -35,6 +35,8 @@ export const LEGEND_LAYOUT = {
   swatchGap: 6,
   /** Horizontal gap between entries on the same list row. */
   itemGap: 14,
+  /** Horizontal gap between the color scale and the null / no-data keys beside it. */
+  keyGap: 16,
   /** Approximate advance width of an 11px sans-serif character. */
   charW: 6.4,
   /** Minimum width of one segment in the stepped-bar form. */
@@ -172,8 +174,18 @@ export function resolveLegendKind(field: any, options: any, isNumeric: boolean):
 
 /** One entry per configured threshold step, in ascending order, whether or not any
  * data falls inside it. The first step is unbounded below (that is how
- * `getActiveThreshold` treats it) and the last is unbounded above. */
-export function buildThresholdItems(field: any, theme: any, dataMin: number, dataMax: number): LegendItem[] {
+ * `getActiveThreshold` treats it) and the last is unbounded above.
+ *
+ * `legendMin` floors that first step: with it the band reads "0 – 30" instead of
+ * "< 30", and its `from` becomes the bound, so hovering it highlights exactly the
+ * cells the label claims. Leave it undefined for the unbounded reading. */
+export function buildThresholdItems(
+  field: any,
+  theme: any,
+  dataMin: number,
+  dataMax: number,
+  legendMin?: number
+): LegendItem[] {
   const cfg = field && field.config ? field.config.thresholds : null;
   const rawSteps = cfg && Array.isArray(cfg.steps) ? cfg.steps : [];
   if (rawSteps.length === 0) {
@@ -189,8 +201,10 @@ export function buildThresholdItems(field: any, theme: any, dataMin: number, dat
     return range.min + (stepValue / 100) * range.delta;
   };
 
+  const bounded = typeof legendMin === 'number' && isFinite(legendMin);
+
   return steps.map((step: any, i: number) => {
-    const from = i === 0 ? null : toAbsolute(step.value);
+    const from = i === 0 ? (bounded ? (legendMin as number) : null) : toAbsolute(step.value);
     const to = i === steps.length - 1 ? null : toAbsolute(steps[i + 1].value);
     return {
       label: bandLabel(field, from, to),
@@ -328,7 +342,7 @@ export function buildLegend(field: any, options: any, theme: any, ctx: LegendCon
   };
 
   if (kind === 'thresholds') {
-    model.items = buildThresholdItems(field, theme, ctx.dataMin, ctx.dataMax);
+    model.items = buildThresholdItems(field, theme, ctx.dataMin, ctx.dataMax, options.legendMin);
     if (model.items.length === 0) {
       // No thresholds configured at all — a gradient still describes the cells honestly.
       kind = 'gradient';
@@ -365,6 +379,16 @@ export function buildLegend(field: any, options: any, theme: any, ctx: LegendCon
 
 export type LegendRowEntry = { item: LegendItem; x: number; width: number };
 
+/** A placed null / no-data swatch. The keys ride beside the color scale when there is
+ * room for them, so they cost no vertical space at all. */
+export type LegendKeyEntry = {
+  kind: 'null' | 'noData';
+  label: string;
+  x: number;
+  y: number;
+  width: number;
+};
+
 export type LegendLayout = {
   /** `bar` = one contiguous stepped / gradient bar. `list` = wrapped swatch rows. */
   form: 'bar' | 'list';
@@ -377,13 +401,53 @@ export type LegendLayout = {
   rows: LegendRowEntry[][];
   /** y of the bar / first swatch row. */
   bodyY: number;
-  /** y of the first null / no-data key row. */
-  keysY: number;
+  /** Placed null / no-data keys, in draw order. Empty when neither state is present. */
+  keys: LegendKeyEntry[];
 };
 
-function entryWidth(item: LegendItem): number {
+function swatchEntryWidth(label: string): number {
   const L = LEGEND_LAYOUT;
-  return L.swatch + L.swatchGap + textW(item.label);
+  return L.swatch + L.swatchGap + textW(label);
+}
+
+function entryWidth(item: LegendItem): number {
+  return swatchEntryWidth(item.label);
+}
+
+/** The state keys a model needs, unplaced. Order matters: null then "no data". */
+function stateKeys(model: LegendModel): Array<{ kind: 'null' | 'noData'; label: string; width: number }> {
+  const keys: Array<{ kind: 'null' | 'noData'; label: string; width: number }> = [];
+  if (model.states.hasNull) {
+    keys.push({ kind: 'null', label: 'null', width: swatchEntryWidth('null') });
+  }
+  if (model.states.hasNoData) {
+    keys.push({ kind: 'noData', label: 'no data', width: swatchEntryWidth('no data') });
+  }
+  return keys;
+}
+
+/** Lay the keys out left-to-right on one row starting at `x`. */
+function placeKeys(
+  keys: Array<{ kind: 'null' | 'noData'; label: string; width: number }>,
+  x: number,
+  y: number
+): LegendKeyEntry[] {
+  const L = LEGEND_LAYOUT;
+  let cursor = x;
+  return keys.map((key) => {
+    const placed = { ...key, x: cursor, y };
+    cursor += key.width + L.itemGap;
+    return placed;
+  });
+}
+
+/** Total width of a one-row key block, gaps included. */
+function keysWidth(keys: Array<{ width: number }>): number {
+  const L = LEGEND_LAYOUT;
+  if (keys.length === 0) {
+    return 0;
+  }
+  return keys.reduce((sum, key) => sum + key.width, 0) + (keys.length - 1) * L.itemGap;
 }
 
 /** Greedily pack entries into rows no wider than `avail`. Always emits at least one
@@ -419,7 +483,7 @@ export function layoutLegend(model: LegendModel | null, availableWidth: number):
     stepW: 0,
     rows: [],
     bodyY: 0,
-    keysY: 0,
+    keys: [],
   };
   if (!model) {
     return empty;
@@ -427,22 +491,47 @@ export function layoutLegend(model: LegendModel | null, availableWidth: number):
 
   const avail = Math.max(120, (availableWidth || 0) - L.padX * 2);
   const bodyY = L.padTop + L.titleH;
-  const keyRows = (model.states.hasNull ? 1 : 0) + (model.states.hasNoData ? 1 : 0);
+  const keys = stateKeys(model);
+  const keysW = keysWidth(keys);
+
+  /** Both bar forms place their keys the same way: beside the bar when they fit,
+   * on their own row underneath when they don't. */
+  const barKeys = (barW: number, scaleRight: number) => {
+    // the bar's own labels already reserve barLabelH below it
+    const scaleBottom = bodyY + L.barH + L.barLabelH;
+    if (keys.length === 0) {
+      return { keys: [] as LegendKeyEntry[], right: scaleRight, bottom: scaleBottom };
+    }
+    const besideX = L.padX + barW + L.keyGap;
+    if (besideX + keysW <= avail) {
+      // centred on the bar, so the keys cost no height at all
+      return {
+        keys: placeKeys(keys, besideX, bodyY + (L.barH - L.swatch) / 2),
+        right: Math.max(scaleRight, besideX + keysW),
+        bottom: scaleBottom,
+      };
+    }
+    return {
+      keys: placeKeys(keys, L.padX, scaleBottom),
+      right: Math.max(scaleRight, L.padX + keysW),
+      bottom: scaleBottom + L.rowStep,
+    };
+  };
 
   // --- continuous bar -------------------------------------------------
   if (model.kind === 'gradient') {
     const barW = Math.min(L.gradientW, avail);
-    const keysY = bodyY + L.barH + L.barLabelH;
     const widestTick = model.ticks.reduce((m, t) => Math.max(m, textW(t.label)), 0);
+    const placed = barKeys(barW, Math.max(L.padX + barW + widestTick / 2, L.padX + textW(model.title)));
     return {
       form: 'bar',
-      width: Math.max(barW + widestTick / 2 + L.padX * 2, textW(model.title) + L.padX * 2),
-      height: keysY + keyRows * L.rowStep + L.padBottom,
+      width: placed.right + L.padX,
+      height: placed.bottom + L.padBottom,
       barW,
       stepW: 0,
       rows: [],
       bodyY,
-      keysY,
+      keys: placed.keys,
     };
   }
 
@@ -450,19 +539,22 @@ export function layoutLegend(model: LegendModel | null, availableWidth: number):
   if (model.kind === 'thresholds' && model.items.length > 1) {
     // one label sits under each internal division
     const widestBoundary = model.items.slice(1).reduce((m, item) => Math.max(m, textW(item.fromLabel)), 0);
-    const stepW = Math.max(L.minStepW, widestBoundary + 8);
+    // a bounded first step also prints its value at the bar's left edge; keep that
+    // start-anchored label clear of the centred label at the first division
+    const firstW = textW(model.items[0].fromLabel);
+    const stepW = Math.max(L.minStepW, widestBoundary + 8, firstW + widestBoundary / 2 + 6);
     const barW = stepW * model.items.length;
     if (barW <= avail) {
-      const keysY = bodyY + L.barH + L.barLabelH;
+      const placed = barKeys(barW, Math.max(L.padX + barW, L.padX + textW(model.title)));
       return {
         form: 'bar',
-        width: Math.max(barW + L.padX * 2, textW(model.title) + L.padX * 2),
-        height: keysY + keyRows * L.rowStep + L.padBottom,
+        width: placed.right + L.padX,
+        height: placed.bottom + L.padBottom,
         barW,
         stepW,
         rows: [],
         bodyY,
-        keysY,
+        keys: placed.keys,
       };
     }
   }
@@ -470,20 +562,41 @@ export function layoutLegend(model: LegendModel | null, availableWidth: number):
   // --- wrapped swatch list (categorical, or thresholds that won't fit) --
   const rows = packRows(model.items, avail);
   const noteRows = model.truncated > 0 ? 1 : 0;
-  const keysY = bodyY + (rows.length + noteRows) * L.rowStep;
+  const listBottom = bodyY + (rows.length + noteRows) * L.rowStep;
   const widestRow = rows.reduce((m, row) => {
     const last = row[row.length - 1];
     return last ? Math.max(m, last.x + last.width) : m;
   }, 0);
+
+  // tack the keys onto the end of the last row when it has room — but never onto a
+  // row a truncation note is about to follow
+  const lastRow = rows[rows.length - 1];
+  const lastRight = lastRow ? lastRow[lastRow.length - 1].x + lastRow[lastRow.length - 1].width : 0;
+  const canShareRow = keys.length > 0 && noteRows === 0 && lastRow && lastRight + L.itemGap + keysW <= avail;
+  let placedKeys: LegendKeyEntry[] = [];
+  let keysRight = 0;
+  let bottom = listBottom;
+  if (keys.length > 0) {
+    if (canShareRow) {
+      const x = L.padX + lastRight + L.itemGap;
+      placedKeys = placeKeys(keys, x, bodyY + (rows.length - 1) * L.rowStep);
+      keysRight = x + keysW;
+    } else {
+      placedKeys = placeKeys(keys, L.padX, listBottom);
+      keysRight = L.padX + keysW;
+      bottom = listBottom + L.rowStep;
+    }
+  }
+
   return {
     form: 'list',
-    width: Math.max(widestRow, textW(model.title)) + L.padX * 2,
-    height: keysY + keyRows * L.rowStep + L.padBottom,
+    width: Math.max(L.padX + widestRow, L.padX + textW(model.title), keysRight) + L.padX,
+    height: bottom + L.padBottom,
     barW: 0,
     stepW: 0,
     rows,
     bodyY,
-    keysY,
+    keys: placedKeys,
   };
 }
 

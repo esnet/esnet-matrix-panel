@@ -63,6 +63,7 @@ export interface MatrixOptions {
   staticColumns: string;
   showLegend: boolean;
   legendType: string; // 'auto' | 'thresholds' | 'gradient' | 'categorical'
+  legendMin?: number; // floor of the first threshold band; blank = unbounded below
 }
 
 export type Category = {

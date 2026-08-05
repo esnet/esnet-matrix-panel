@@ -1,5 +1,13 @@
 import { createTheme, FieldType, getDisplayProcessor, ThresholdsMode, toDataFrame } from '@grafana/data';
-import { buildLegend, CATEGORICAL_CAP, estimateLegendHeight, layoutLegend, normalizeLegendType, resolveLegendKind } from './legend';
+import {
+  buildLegend,
+  CATEGORICAL_CAP,
+  estimateLegendHeight,
+  layoutLegend,
+  LEGEND_LAYOUT,
+  normalizeLegendType,
+  resolveLegendKind,
+} from './legend';
 import { LegendModel } from './types';
 
 const theme = createTheme();
@@ -108,6 +116,26 @@ describe('threshold legend is built from the thresholds, not the data range', ()
     expect(model.items[1].label).toBe('20 – 50');
     expect(model.items[2].label).toBe('≥ 50');
     expect(JSON.stringify(model.items)).not.toContain('Infinity');
+  });
+
+  test('a legend min floors the first band instead of leaving it unbounded', () => {
+    const model = buildLegend(makeField(absoluteThresholds), { ...baseOptions, legendMin: 0 }, theme, ctxFor());
+    expect(model.items[0].from).toBe(0);
+    expect(model.items[0].label).toBe('0 – 20');
+    // the floor is printed at the bar's left edge
+    expect(model.items[0].fromLabel).toBe('0');
+    // the rest of the scale is untouched
+    expect(model.items.map((i) => i.to)).toEqual([20, 50, null]);
+  });
+
+  test('a non-zero legend min works, and omitting it keeps the unbounded reading', () => {
+    const floored = buildLegend(makeField(absoluteThresholds), { ...baseOptions, legendMin: 10 }, theme, ctxFor());
+    expect(floored.items[0].label).toBe('10 – 20');
+
+    const open = buildLegend(makeField(absoluteThresholds), baseOptions, theme, ctxFor());
+    expect(open.items[0].from).toBeNull();
+    expect(open.items[0].label).toBe('< 20');
+    expect(open.items[0].fromLabel).toBe('');
   });
 
   test('labels carry the field unit, matching the cells', () => {
@@ -322,7 +350,7 @@ describe('layout', () => {
     expect(estimateLegendHeight(few, 400)).toBeLessThan(estimateLegendHeight(model, 400));
   });
 
-  test('the null / no-data key adds height', () => {
+  test('the null / no-data keys ride beside the bar, costing width but no height', () => {
     const plain = thresholdModel();
     const keyed = buildLegend(
       makeField(absoluteThresholds),
@@ -330,7 +358,52 @@ describe('layout', () => {
       theme,
       ctxFor([1, 2], { hasNull: true, hasNoData: true })
     );
-    expect(estimateLegendHeight(keyed, 600)).toBeGreaterThan(estimateLegendHeight(plain, 600));
+    expect(estimateLegendHeight(keyed, 600)).toBe(estimateLegendHeight(plain, 600));
+
+    const layout = layoutLegend(keyed, 600);
+    const plainLayout = layoutLegend(plain, 600);
+    expect(layout.width).toBeGreaterThan(plainLayout.width);
+    expect(layout.keys.map((k) => k.kind)).toEqual(['null', 'noData']);
+    // one row, clear of the bar, and inside the bar's vertical band
+    layout.keys.forEach((key) => {
+      expect(key.x).toBeGreaterThan(LEGEND_LAYOUT.padX + layout.barW);
+      expect(key.y).toBe(layout.keys[0].y);
+      expect(key.y).toBeGreaterThanOrEqual(layout.bodyY);
+      expect(key.y + LEGEND_LAYOUT.swatch).toBeLessThanOrEqual(layout.bodyY + LEGEND_LAYOUT.barH);
+    });
+    expect(layout.keys[1].x).toBeGreaterThan(layout.keys[0].x);
+  });
+
+  test('the keys drop below the bar when there is no room beside it', () => {
+    const keyed = buildLegend(
+      makeField(absoluteThresholds),
+      baseOptions,
+      theme,
+      ctxFor([1, 2], { hasNull: true, hasNoData: true })
+    );
+    const narrow = layoutLegend(keyed, 150);
+    expect(narrow.form).toBe('bar');
+    narrow.keys.forEach((key) => {
+      expect(key.y).toBeGreaterThan(narrow.bodyY + LEGEND_LAYOUT.barH);
+    });
+    expect(narrow.height).toBeGreaterThan(estimateLegendHeight(thresholdModel(), 150));
+  });
+
+  test('a list legend puts the keys on the last row when it fits', () => {
+    const keyed = buildLegend(
+      makeField(),
+      { ...baseOptions, legendType: 'categorical' },
+      theme,
+      ctxFor([1, 2], { hasNull: true, hasNoData: true })
+    );
+    const layout = layoutLegend(keyed, 600);
+    expect(layout.form).toBe('list');
+    const lastRow = layout.rows[layout.rows.length - 1];
+    const lastEntry = lastRow[lastRow.length - 1];
+    expect(layout.keys[0].y).toBe(layout.bodyY + (layout.rows.length - 1) * LEGEND_LAYOUT.rowStep);
+    expect(layout.keys[0].x).toBeGreaterThan(LEGEND_LAYOUT.padX + lastEntry.x + lastEntry.width);
+    const unkeyed = { ...keyed, states: { hasNull: false, hasNoData: false } } as LegendModel;
+    expect(layout.height).toBe(estimateLegendHeight(unkeyed, 600));
   });
 
   test('a truncation note reserves its own row', () => {

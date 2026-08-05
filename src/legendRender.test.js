@@ -83,6 +83,21 @@ describe('threshold legend rendering', () => {
     expect(titles(el)).toEqual(['< 20', '20 – 50', '≥ 50']);
   });
 
+  test('a legend min prints the floor at the left edge and bounds the first band', () => {
+    const model = thresholdModel(three, undefined, { legendMin: 0 });
+    const { el, calls } = draw(model);
+    expect(texts(el)).toEqual(['Gbps', '0', '20', '50']);
+    expect(titles(el)).toEqual(['0 – 20', '20 – 50', '≥ 50']);
+
+    const floorLabel = [...el.querySelectorAll('text')].find((t) => t.textContent === '0');
+    expect(+floorLabel.getAttribute('x')).toBe(4);
+    expect(floorLabel.getAttribute('text-anchor')).toBe('start');
+
+    // hovering the first step now highlights the bounded range, not everything below 20
+    el.querySelectorAll('rect')[0].dispatchEvent(new MouseEvent('mouseover'));
+    expect(calls.range).toEqual([[0, 20]]);
+  });
+
   test('segments are contiguous and stay inside the declared svg width', () => {
     const model = thresholdModel(three);
     const { el, svg } = draw(model);
@@ -218,6 +233,28 @@ describe('null / no-data key', () => {
     expect(calls.state).toEqual([true, false]);
   });
 
+  test('sits beside the bar on one row rather than stacked underneath it', () => {
+    const model = buildLegend(
+      makeField({ thresholds: { mode: ThresholdsMode.Absolute, steps: steps([-Infinity, 'green'], [50, 'red']) } }),
+      options,
+      theme,
+      ctx([1, 2], { hasNull: true, hasNoData: true })
+    );
+    const layout = layoutLegend(model, 600);
+    const { el } = draw(model, 600);
+    const keyRects = [...el.querySelectorAll('rect')].slice(-2);
+    const y = keyRects.map((r) => +r.getAttribute('y'));
+    const x = keyRects.map((r) => +r.getAttribute('x'));
+
+    // same row, left to right, clear of the bar
+    expect(y[0]).toBe(y[1]);
+    expect(x[1]).toBeGreaterThan(x[0]);
+    expect(x[0]).toBeGreaterThan(layout.barW);
+    // inside the bar's vertical band, so they add no height
+    expect(y[0]).toBeGreaterThanOrEqual(layout.bodyY);
+    expect(y[0] + 12).toBeLessThanOrEqual(layout.bodyY + 14);
+  });
+
   test('is absent when no such cells exist', () => {
     const model = buildLegend(
       makeField({ thresholds: { mode: ThresholdsMode.Absolute, steps: steps([-Infinity, 'green'], [50, 'red']) } }),
@@ -231,7 +268,7 @@ describe('null / no-data key', () => {
   });
 });
 
-describe('the drawn legend never exceeds the height the grid reserved for it', () => {
+describe('the drawn legend never exceeds the box it declared', () => {
   test.each([
     ['thresholds', { thresholds: { mode: ThresholdsMode.Absolute, steps: steps([-Infinity, 'g'], [20, 'o'], [50, 'r']) } }, 'auto', 600],
     ['narrow thresholds', { thresholds: { mode: ThresholdsMode.Absolute, steps: steps([-Infinity, 'g'], [20, 'o'], [50, 'r']) } }, 'auto', 150],
@@ -240,12 +277,24 @@ describe('the drawn legend never exceeds the height the grid reserved for it', (
   ])('%s', (_name, config, legendType, width) => {
     const model = buildLegend(makeField(config), { ...options, legendType }, theme, ctx([0, 5, 10, 20, 50, 100], { hasNull: true, hasNoData: true }));
     const { el, svg } = draw(model, width);
-    const declared = +svg.getAttribute('height');
-    const lowest = [...el.querySelectorAll('rect, text, line')].reduce((m, node) => {
+    const nodes = [...el.querySelectorAll('rect, text, line')];
+
+    const declaredH = +svg.getAttribute('height');
+    const lowest = nodes.reduce((m, node) => {
       const y = +(node.getAttribute('y') || node.getAttribute('y2') || 0);
       const h = +(node.getAttribute('height') || 0);
       return Math.max(m, y + h);
     }, 0);
-    expect(lowest).toBeLessThanOrEqual(declared);
+    expect(lowest).toBeLessThanOrEqual(declaredH);
+
+    // text advance is unmeasurable in jsdom, so this covers the boxes and rules —
+    // enough to catch a key block placed off the right edge
+    const declaredW = +svg.getAttribute('width');
+    const rightmost = nodes.reduce((m, node) => {
+      const x = +(node.getAttribute('x') || node.getAttribute('x2') || 0);
+      const w = +(node.getAttribute('width') || 0);
+      return Math.max(m, x + w);
+    }, 0);
+    expect(rightmost).toBeLessThanOrEqual(declaredW);
   });
 });

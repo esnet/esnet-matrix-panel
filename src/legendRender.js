@@ -15,15 +15,18 @@ import { LEGEND_LAYOUT, layoutLegend } from './legend';
 
 const FONT_SIZE = '11px';
 
-/** Draw the "null" / "no data" key rows under the color scale. */
-function drawStateKeys(svg, model, opts, theme, handlers, startY) {
+/** Draw the "null" / "no data" keys wherever `layoutLegend` placed them — beside the
+ * color scale when it left room, otherwise on their own row beneath it. */
+function drawStateKeys(svg, keys, opts, theme, handlers) {
   const L = LEGEND_LAYOUT;
-  let y = startY;
-  const addRow = (fill, stroke, label, wantNull) => {
+  keys.forEach((key) => {
+    const isNull = key.kind === 'null';
+    const fill = isNull ? opts.nullColor : opts.distinctNoData ? 'none' : opts.defaultColor;
+    const stroke = isNull ? 'none' : opts.distinctNoData ? opts.noDataStroke : 'none';
     svg
       .append('rect')
-      .attr('x', L.padX)
-      .attr('y', y)
+      .attr('x', key.x)
+      .attr('y', key.y)
       .attr('width', L.swatch)
       .attr('height', L.swatch)
       .attr('rx', Math.min(opts.cornerRadius, 3))
@@ -32,34 +35,22 @@ function drawStateKeys(svg, model, opts, theme, handlers, startY) {
       .attr('stroke-width', stroke === 'none' ? 0 : 1)
       .style('cursor', 'pointer')
       .on('mouseover', function () {
-        handlers.highlightByState(wantNull);
+        handlers.highlightByState(isNull);
       })
       .on('mouseout', function () {
         handlers.clearHighlight();
       })
       .append('title')
-      .text(label);
+      .text(key.label);
     svg
       .append('text')
-      .attr('x', L.padX + L.swatch + L.swatchGap)
-      .attr('y', y + L.swatch - 2)
+      .attr('x', key.x + L.swatch + L.swatchGap)
+      .attr('y', key.y + L.swatch - 2)
       .attr('font-size', FONT_SIZE)
       .style('font-family', theme.typography.fontFamily)
       .attr('fill', theme.colors.text.secondary)
-      .text(label);
-    y += L.rowStep;
-  };
-  if (model.states.hasNull) {
-    addRow(opts.nullColor, 'none', 'null', true);
-  }
-  if (model.states.hasNoData) {
-    addRow(
-      opts.distinctNoData ? 'none' : opts.defaultColor,
-      opts.distinctNoData ? opts.noDataStroke : 'none',
-      'no data',
-      false
-    );
-  }
+      .text(key.label);
+  });
 }
 
 /** Continuous ramp: a smooth bar with a real tick axis. */
@@ -188,6 +179,29 @@ function drawSteppedBar(svg, model, layout, opts, theme, handlers) {
 
   // boundary values sit at the divisions between steps, not under their centres
   const labelY = y + L.barH + 13;
+
+  // a bounded first step prints its floor at the bar's left edge, so the scale reads
+  // "0  30  70" rather than starting at nothing
+  if (model.items[0] && model.items[0].fromLabel) {
+    svg
+      .append('line')
+      .attr('x1', L.padX)
+      .attr('x2', L.padX)
+      .attr('y1', y + L.barH)
+      .attr('y2', y + L.barH + 3)
+      .attr('stroke', theme.colors.border.weak)
+      .attr('stroke-width', 1);
+    svg
+      .append('text')
+      .attr('x', L.padX)
+      .attr('y', labelY)
+      .attr('text-anchor', 'start')
+      .attr('font-size', FONT_SIZE)
+      .style('font-family', theme.typography.fontFamily)
+      .attr('fill', theme.colors.text.primary)
+      .text(model.items[0].fromLabel);
+  }
+
   model.items.slice(1).forEach((item, i) => {
     const tx = L.padX + (i + 1) * stepW;
     svg
@@ -301,7 +315,7 @@ function renderLegend(elem, model, id, opts, theme, handlers) {
     drawList(svg, model, layout, opts, theme, handlers);
   }
 
-  drawStateKeys(svg, model, opts, theme, handlers, layout.keysY);
+  drawStateKeys(svg, layout.keys, opts, theme, handlers);
 }
 
 export { renderLegend };

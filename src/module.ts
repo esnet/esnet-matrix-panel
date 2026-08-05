@@ -339,6 +339,15 @@ plugin.setPanelOptions((builder) => {
       ],
     },
   });
+  builder.addNumberInput({
+    path: 'legendMin',
+    name: 'Legend Min',
+    description:
+      'Lower bound of the legend scale. The lowest threshold step is unbounded below, so it normally reads "< 30"; with a bound it reads "0 – 30", and hovering it highlights only that range. Leave blank for unbounded.',
+    category: OptionsCategory,
+    showIf: legendBool(true),
+    defaultValue: 0,
+  });
   builder.addTextInput({
     path: 'sourceText',
     name: 'Source Text',
